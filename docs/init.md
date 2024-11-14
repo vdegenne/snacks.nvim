@@ -12,18 +12,18 @@
 ---@field notifier? snacks.notifier.Config | { enabled: boolean }
 ---@field quickfile? { enabled: boolean }
 ---@field statuscolumn? snacks.statuscolumn.Config  | { enabled: boolean }
+---@field styles? table<string, snacks.win.Config>
 ---@field terminal? snacks.terminal.Config
 ---@field toggle? snacks.toggle.Config
----@field styles? table<string, snacks.win.Config>
 ---@field win? snacks.win.Config
 ---@field words? snacks.words.Config
 {
   styles = {},
-  bigfile = { enabled = true },
-  notifier = { enabled = true },
-  quickfile = { enabled = true },
-  statuscolumn = { enabled = true },
-  words = { enabled = true },
+  bigfile = { enabled = false },
+  notifier = { enabled = false },
+  quickfile = { enabled = false },
+  statuscolumn = { enabled = false },
+  words = { enabled = false },
 }
 ```
 
@@ -31,9 +31,9 @@
 
 ```lua
 ---@class Snacks
----@field config snacks.config
 ---@field bigfile snacks.bigfile
 ---@field bufdelete snacks.bufdelete
+---@field config snacks.config
 ---@field debug snacks.debug
 ---@field git snacks.git
 ---@field gitbrowse snacks.gitbrowse
@@ -41,6 +41,7 @@
 ---@field notifier snacks.notifier
 ---@field notify snacks.notify
 ---@field quickfile snacks.quickfile
+---@field health snacks.health
 ---@field rename snacks.rename
 ---@field statuscolumn snacks.statuscolumn
 ---@field terminal snacks.terminal

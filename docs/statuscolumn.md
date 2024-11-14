@@ -6,6 +6,7 @@
 
 ```lua
 ---@class snacks.statuscolumn.Config
+---@field enabled? boolean
 {
   left = { "mark", "sign" }, -- priority of signs on the left (high to low)
   right = { "fold", "git" }, -- priority of signs on the right (high to low)
