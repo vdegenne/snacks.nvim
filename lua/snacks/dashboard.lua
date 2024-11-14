@@ -33,8 +33,6 @@ local M = setmetatable({}, {
 ---@class snacks.dashboard.Config
 ---@field sections (snacks.dashboard.Section|fun():snacks.dashboard.Section[])[]
 ---@field formats table<string, snacks.dashboard.Text|fun(value:string):snacks.dashboard.Text>
----@field wo vim.wo window options
----@field bo vim.bo buffer options
 local defaults = {
   formats = {
     key = { "[%s]", hl = "SnacksDashboardKey" },
@@ -96,6 +94,12 @@ local defaults = {
       return Snacks.dashboard.sections.startup()
     end,
   },
+}
+
+Snacks.config.style("dashboard", {
+  zindex = 10,
+  height = 0.6,
+  width = 0.6,
   bo = {
     bufhidden = "wipe",
     buftype = "nofile",
@@ -118,7 +122,7 @@ local defaults = {
     winhighlight = "Normal:SnacksDashboardNormal,NormalFloat:SnacksDashboardNormal",
     wrap = false,
   },
-}
+})
 
 M.ns = vim.api.nvim_create_namespace("snacks_dashboard")
 
@@ -139,7 +143,11 @@ function M.open(opts)
   local self = setmetatable({}, { __index = D })
   self.opts = Snacks.config.get("dashboard", defaults, opts) --[[@as snacks.dashboard.Opts]]
   self.buf = self.opts.buf or vim.api.nvim_create_buf(false, true)
-  self.win = self.opts.win or Snacks.win({ height = 0, width = 0, buf = self.buf, enter = true, zindex = 10 }).win --[[@as number]]
+  self.win = self.opts.win or Snacks.win({
+    style = "dashboard",
+    buf = self.buf,
+    enter = true,
+  }).win --[[@as number]]
   self:init()
   self:render()
   return self
@@ -160,10 +168,11 @@ function D:init()
   vim.api.nvim_win_set_buf(self.win, self.buf)
 
   vim.o.ei = "all"
-  for k, v in pairs(self.opts.wo) do
+  local style = Snacks.config.styles.dashboard
+  for k, v in pairs(style.wo or {}) do
     vim.api.nvim_set_option_value(k, v, { scope = "local", win = self.win })
   end
-  for k, v in pairs(self.opts.bo) do
+  for k, v in pairs(style.bo or {}) do
     vim.api.nvim_set_option_value(k, v, { buf = self.buf })
   end
   vim.o.ei = ""
