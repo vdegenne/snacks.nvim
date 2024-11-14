@@ -1,4 +1,5 @@
----@private
+local Snacks = require("snacks")
+
 ---@class snacks.statuscolumn
 ---@overload fun(): string
 local M = setmetatable({}, {
@@ -24,6 +25,7 @@ local defaults = {
 
 local config = Snacks.config.get("statuscolumn", defaults)
 
+---@private
 ---@alias snacks.statuscolumn.Sign.type "mark"|"sign"|"fold"|"git"
 ---@alias snacks.statuscolumn.Sign {name:string, text:string, texthl:string, priority:number, type:snacks.statuscolumn.Sign.type}
 
@@ -33,6 +35,7 @@ local cache = {}
 
 local did_setup = false
 
+---@private
 function M.setup()
   if did_setup then
     return
@@ -44,6 +47,7 @@ function M.setup()
   end)
 end
 
+---@private
 ---@param name string
 function M.is_git_sign(name)
   for _, pattern in ipairs(config.git.patterns) do
@@ -54,6 +58,7 @@ function M.is_git_sign(name)
 end
 
 -- Returns a list of regular and extmark signs sorted by priority (low to high)
+---@private
 ---@return table<number, snacks.statuscolumn.Sign[]>
 ---@param buf number
 function M.buf_signs(buf)
@@ -110,10 +115,11 @@ function M.buf_signs(buf)
 end
 
 -- Returns a list of regular and extmark signs sorted by priority (high to low)
----@return snacks.statuscolumn.Sign[]
+---@private
 ---@param win number
 ---@param buf number
 ---@param lnum number
+---@return snacks.statuscolumn.Sign[]
 function M.line_signs(win, buf, lnum)
   local signs = M.buf_signs(buf)[lnum] or {}
 
@@ -133,6 +139,7 @@ function M.line_signs(win, buf, lnum)
   return signs
 end
 
+---@private
 ---@param sign? snacks.statuscolumn.Sign
 ---@param len? number
 function M.icon(sign, len)
@@ -143,6 +150,7 @@ function M.icon(sign, len)
   return sign.texthl and ("%#" .. sign.texthl .. "#" .. text .. "%*") or text
 end
 
+---@return string
 function M.get()
   M.setup()
   local win = vim.g.statusline_winid

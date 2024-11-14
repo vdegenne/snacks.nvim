@@ -63,12 +63,14 @@ Based on the provided options, some defaults will be set:
   wo = {},
   keys = {
     gf = function(self)
-      local f = vim.fn.findfile(vim.fn.expand("<cfile>"))
+      local f = vim.fn.findfile(vim.fn.expand("<cfile>"), "**")
       if f == "" then
         Snacks.notify.warn("No file under cursor")
       else
-        self:close()
-        vim.cmd("e " .. f)
+        self:hide()
+        vim.schedule(function()
+          vim.cmd("e " .. f)
+        end)
       end
     end,
     term_normal = {
@@ -114,6 +116,21 @@ Snacks.terminal = {}
 ```lua
 ---@type fun(cmd?: string|string[], opts?: snacks.terminal.Opts): snacks.terminal
 Snacks.terminal()
+```
+
+### `Snacks.terminal.colorize()`
+
+Colorize the current buffer.
+Replaces ansii color codes with the actual colors.
+
+Example:
+
+```sh
+ls -la --color=always | nvim - -c "lua Snacks.terminal.colorize()"
+```
+
+```lua
+Snacks.terminal.colorize()
 ```
 
 ### `Snacks.terminal.open()`

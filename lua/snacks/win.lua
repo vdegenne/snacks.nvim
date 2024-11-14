@@ -20,6 +20,8 @@ local M = setmetatable({}, {
 ---@class snacks.win.Config: vim.api.keyset.win_config
 ---@field style? string merges with config from `Snacks.config.styles[style]`
 ---@field show? boolean Show the window immediately (default: true)
+---@field height? number Height of the window. Use <1 for relative height. 0 means full height. (default: 0.9)
+---@field width? number Width of the window. Use <1 for relative width. 0 means full width. (default: 0.9)
 ---@field minimal? boolean Disable a bunch of options to make the window minimal (default: true)
 ---@field position? "float"|"bottom"|"top"|"left"|"right"
 ---@field buf? number If set, use this buffer instead of creating a new one
@@ -123,6 +125,18 @@ vim.api.nvim_set_hl(0, "SnacksNormalNC", { link = "NormalFloat", default = true 
 vim.api.nvim_set_hl(0, "SnacksWinBar", { link = "Title", default = true })
 vim.api.nvim_set_hl(0, "SnacksWinBarNC", { link = "SnacksWinBar", default = true })
 
+M.transparent = false
+
+local function check_bg()
+  local normal = vim.api.nvim_get_hl(0, { name = "Normal" })
+  M.transparent = not (normal and normal.bg ~= nil)
+end
+check_bg()
+vim.api.nvim_create_autocmd("ColorScheme", {
+  group = vim.api.nvim_create_augroup("snacks_win_transparent", { clear = true }),
+  callback = check_bg,
+})
+
 local id = 0
 
 ---@private
@@ -155,7 +169,7 @@ function M.new(opts)
   local self = setmetatable({}, { __index = M })
   id = id + 1
   self.id = id
-  opts = M.resolve(Snacks.config.get("win", defaults, opts))
+  opts = M.resolve(Snacks.config.get("win", defaults), opts)
   if opts.minimal then
     opts = M.resolve("minimal", opts)
   end
@@ -314,10 +328,14 @@ function M:equalize()
 end
 
 function M:update()
-  if self:valid() and self:is_floating() then
-    local opts = self:win_opts()
-    opts.noautocmd = nil
-    vim.api.nvim_win_set_config(self.win, opts)
+  if self:valid() then
+    self:set_options("buf")
+    self:set_options("win")
+    if self:is_floating() then
+      local opts = self:win_opts()
+      opts.noautocmd = nil
+      vim.api.nvim_win_set_config(self.win, opts)
+    end
   end
 end
 
@@ -326,27 +344,34 @@ function M:show()
     self:update()
     return self
   end
-  self.augroup = vim.api.nvim_create_augroup("snacks_win_" .. id, { clear = true })
+  self.augroup = vim.api.nvim_create_augroup("snacks_win_" .. self.id, { clear = true })
 
   self:open_buf()
+
+  -- OPTIM: prevent treesitter or syntax highlighting to attach on FileType if it's not already enabled
+  local optim_hl = not vim.b[self.buf].ts_highlight and vim.bo[self.buf].syntax == ""
+  vim.b[self.buf].ts_highlight = optim_hl or vim.b[self.buf].ts_highlight
   self:set_options("buf")
+  vim.b[self.buf].ts_highlight = not optim_hl and vim.b[self.buf].ts_highlight or nil
+
   if self.opts.on_buf then
     self.opts.on_buf(self)
   end
 
   self:open_win()
+  if M.transparent then
+    self.opts.wo.winblend = 0
+  end
   self:set_options("win")
   if self.opts.on_win then
     self.opts.on_win(self)
   end
 
+  -- syntax highlighting
   local ft = self.opts.ft or vim.bo[self.buf].filetype
-  if ft then
-    local lang = ft and vim.treesitter.language.get_lang(ft)
-    if lang and not vim.b[self.buf].ts_highlight and not pcall(vim.treesitter.start, self.buf, lang) then
-      lang = nil
-    end
-    if ft and not lang then
+  if ft and not ft:find("^snacks_") and not vim.b[self.buf].ts_highlight and vim.bo[self.buf].syntax == "" then
+    local lang = vim.treesitter.language.get_lang(ft)
+    if not (lang and pcall(vim.treesitter.start, self.buf, lang)) then
       vim.bo[self.buf].syntax = ft
     end
   end
@@ -387,20 +412,9 @@ function M:show()
 end
 
 function M:add_padding()
-  if not self:buf_valid() then
-    return
-  end
-  local ns = vim.api.nvim_create_namespace("snacks_win_padding")
-  vim.api.nvim_buf_clear_namespace(self.buf, ns, 0, -1)
+  self.opts.wo.statuscolumn = " "
   self.opts.wo.list = true
-  self.opts.wo.showbreak = " "
   self.opts.wo.listchars = ("eol: ," .. (self.opts.wo.listchars or "")):gsub(",$", "")
-  for l = 1, vim.api.nvim_buf_line_count(self.buf) do
-    vim.api.nvim_buf_set_extmark(self.buf, ns, l - 1, 0, {
-      virt_text = { { " " } },
-      virt_text_pos = "inline",
-    })
-  end
 end
 
 function M:is_floating()
@@ -410,48 +424,42 @@ end
 ---@private
 function M:drop()
   -- don't show a backdrop for non-floating windows
-  if not self:is_floating() then
+  if
+    M.transparent
+    or not (self:is_floating() and self.opts.backdrop and self.opts.backdrop < 100 and vim.o.termguicolors)
+  then
     return
   end
-  local has_bg = false
-  if vim.fn.has("nvim-0.9.0") == 0 then
-    local normal = vim.api.nvim_get_hl_by_name("Normal", true)
-    has_bg = normal and normal.background ~= nil
-  else
-    local normal = vim.api.nvim_get_hl(0, { name = "Normal" })
-    has_bg = normal and normal.bg ~= nil
-  end
 
-  if has_bg and self.opts.backdrop and self.opts.backdrop < 100 and vim.o.termguicolors then
-    self.backdrop = M.new({
-      enter = false,
-      backdrop = false,
-      relative = "editor",
-      height = 0,
-      width = 0,
-      style = "minimal",
-      focusable = false,
-      zindex = self.opts.zindex - 1,
-      wo = {
-        winhighlight = "Normal:SnacksBackdrop",
-        winblend = self.opts.backdrop,
-      },
-      bo = {
-        buftype = "nofile",
-        filetype = "snacks_win_backdrop",
-      },
-    })
-    vim.api.nvim_create_autocmd("WinClosed", {
-      group = self.augroup,
-      pattern = self.win .. "",
-      callback = function()
-        if self.backdrop then
-          self.backdrop:close()
-          self.backdrop = nil
-        end
-      end,
-    })
-  end
+  self.backdrop = M.new({
+    enter = false,
+    backdrop = false,
+    relative = "editor",
+    height = 0,
+    width = 0,
+    style = "minimal",
+    border = "none",
+    focusable = false,
+    zindex = self.opts.zindex - 1,
+    wo = {
+      winhighlight = "Normal:SnacksBackdrop",
+      winblend = self.opts.backdrop,
+    },
+    bo = {
+      buftype = "nofile",
+      filetype = "snacks_win_backdrop",
+    },
+  })
+  vim.api.nvim_create_autocmd("WinClosed", {
+    group = self.augroup,
+    pattern = self.win .. "",
+    callback = function()
+      if self.backdrop then
+        self.backdrop:close()
+        self.backdrop = nil
+      end
+    end,
+  })
 end
 
 ---@param from? number
@@ -489,8 +497,10 @@ function M:win_opts()
   if opts.relative == "cursor" then
     return opts
   end
-  opts.row = opts.row or math.floor((parent.height - opts.height) / 2)
-  opts.col = opts.col or math.floor((parent.width - opts.width) / 2)
+  local border_offset = self:has_border() and 2 or 0
+  opts.row = opts.row or math.floor((parent.height - opts.height - border_offset) / 2)
+  opts.col = opts.col or math.floor((parent.width - opts.width - border_offset) / 2)
+
   return opts
 end
 
@@ -499,11 +509,34 @@ function M:size()
   local opts = self:win_opts()
   local height = opts.height
   local width = opts.width
-  if opts.border and opts.border ~= "none" then
+  if self:has_border() then
     height = height + 2
     width = width + 2
   end
   return { height = height, width = width }
+end
+
+function M:has_border()
+  return self.opts.border and self.opts.border ~= "" and self.opts.border ~= "none"
+end
+
+function M:border_text_width()
+  if not self:has_border() then
+    return 0
+  end
+  local ret = 0
+  for _, t in ipairs({ "title", "footer" }) do
+    local str = self.opts[t] or {}
+    str = type(str) == "string" and { str } or str
+    ---@cast str (string|string[])[]
+    ret = math.max(ret, #table.concat(
+      vim.tbl_map(function(s)
+        return type(s) == "string" and s or s[1]
+      end, str),
+      ""
+    ))
+  end
+  return ret
 end
 
 ---@private
