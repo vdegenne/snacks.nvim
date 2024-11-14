@@ -9,6 +9,7 @@ local M = setmetatable({}, {
 })
 
 ---@class snacks.statuscolumn.Config
+---@field enabled? boolean
 local defaults = {
   left = { "mark", "sign" }, -- priority of signs on the left (high to low)
   right = { "fold", "git" }, -- priority of signs on the right (high to low)
@@ -213,6 +214,16 @@ function M.get()
   end
 
   return table.concat(components, "")
+end
+
+---@private
+function M.health()
+  local ready = vim.o.statuscolumn:find("snacks.statuscolumn", 1, true)
+  if config.enabled and not ready then
+    Snacks.health.warn(("is not configured\n- `vim.o.statuscolumn = %q`"):format(vim.o.statuscolumn))
+  elseif not config.enabled and ready then
+    Snacks.health.ok(("is manually configured\n- `vim.o.statuscolumn = %q`"):format(vim.o.statuscolumn))
+  end
 end
 
 return M

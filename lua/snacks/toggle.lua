@@ -196,4 +196,10 @@ function M.diagnostics(opts)
   }, opts)
 end
 
+---@private
+function M.health()
+  local ok = pcall(require, "which-key")
+  Snacks.health[ok and "ok" or "warn"](("{which-key} is %s"):format(ok and "installed" or "not installed"))
+end
+
 return M

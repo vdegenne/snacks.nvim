@@ -201,4 +201,16 @@ function M.colorize()
   vim.api.nvim_create_autocmd("TermEnter", { buffer = buf, command = "stopinsert" })
 end
 
+---@private
+function M.health()
+  local cmd = M.parse(vim.o.shell)
+  local ok = cmd[1] and (vim.fn.executable(cmd[1]) == 1)
+  local msg = ("shell %s\n- `vim.o.shell`: %s\n- `parsed`: %s"):format(
+    ok and "configured" or "not found",
+    vim.o.shell,
+    vim.inspect(cmd)
+  )
+  Snacks.health[ok and "ok" or "error"](msg)
+end
+
 return M

@@ -43,6 +43,8 @@ Install the plugin with your package manager:
 
 > [!tip]
 > If you don't need these plugins, you can disable them, or skip `setup` altogether.
+> ![tip]
+> It' a good idea to run `:checkhealth snacks` to see if everything is set up correctly.
 
 ```lua
 {

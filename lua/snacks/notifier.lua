@@ -311,8 +311,14 @@ function N:start()
   )
 end
 
+local health_msg = false
+
 ---@param opts snacks.notifier.Notif.opts
 function N:add(opts)
+  if opts.checkhealth then
+    health_msg = true
+    return
+  end
   local now = ts()
   local notif = vim.deepcopy(opts) --[[@as snacks.notifier.Notif]]
   notif.msg = notif.msg or ""
@@ -659,6 +665,20 @@ end
 ---@param opts? snacks.notifier.history
 function M.show_history(opts)
   return notifier:show_history(opts)
+end
+
+---@private
+function M.health()
+  health_msg = false
+  vim.notify("", nil, { checkhealth = true })
+  vim.wait(500, function()
+    return health_msg
+  end, 10)
+  if health_msg then
+    Snacks.health.ok("is ready")
+  else
+    Snacks.health.error("is not ready")
+  end
 end
 
 return M

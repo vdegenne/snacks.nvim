@@ -309,7 +309,7 @@ function M.write(name, lines)
 end
 
 function M._build()
-  local skip = { "docs" }
+  local skip = { "docs", "health" }
   for file, t in vim.fs.dir("lua/snacks", { depth = 1 }) do
     local name = vim.fn.fnamemodify(file, ":t:r")
     if t == "file" and not vim.tbl_contains(skip, name) then
