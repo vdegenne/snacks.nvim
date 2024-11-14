@@ -84,6 +84,7 @@ Please refer to the readme of each plugin for their specific configuration.
 ---@field quickfile? { enabled: boolean }
 ---@field statuscolumn? snacks.statuscolumn.Config  | { enabled: boolean }
 ---@field styles? table<string, snacks.win.Config>
+---@field dashboard? snacks.dashboard.Config  | { enabled: boolean }
 ---@field terminal? snacks.terminal.Config
 ---@field toggle? snacks.toggle.Config
 ---@field win? snacks.win.Config
@@ -91,6 +92,7 @@ Please refer to the readme of each plugin for their specific configuration.
 {
   styles = {},
   bigfile = { enabled = false },
+  dashboard = { enabled = false },
   notifier = { enabled = false },
   quickfile = { enabled = false },
   statuscolumn = { enabled = false },
