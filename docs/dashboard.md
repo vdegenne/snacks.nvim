@@ -1,16 +1,106 @@
 # 🍿 dashboard
 
+## 🚀 Usage
+
+The dashboard comes with a set of default sections, that
+can be customized with `opts.preset` or
+fully replaced with `opts.sections`.
+
+The default preset comes with support for:
+
+- pickers:
+  - [fzf-lua](https://github.com/ibhagwan/fzf-lua)
+  - [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)
+  - [mini.pick](https://github.com/echasnovski/mini.pick)
+- session managers: (only works with [lazy.nvim](https://github.com/folke/lazy.nvim))
+  - [persistence.nvim](https://github.com/folke/persistence.nvim)
+  - [persisted.nvim](https://github.com/olimorris/persisted.nvim)
+  - [neovim-session-manager](https://github.com/Shatur/neovim-session-manager)
+  - [posession.nvim](https://github.com/jedrzejboczar/possession.nvim)
+
+### Section actions
+
+A section can have an `action` property that will be executed as:
+
+- a command if it starts with `:`
+- a keymap if it's a string not starting with `:`
+- a function if it's a function
+
+```lua
+-- command
+{
+  action = ":Telescope find_files",
+  key = "f",
+},
+```
+
+```lua
+-- keymap
+{
+  action = "<leader>ff",
+  key = "f",
+},
+```
+
+```lua
+-- function
+{
+  action = function()
+    require("telescope.builtin").find_files()
+  end,
+  key = "h",
+},
+```
+
+### Section text
+
+Every section should have a `text` property with an array of `snacks.dashboard.Text` objects.
+If the `text` property is not provided, the `snacks.dashboard.Config.formats`
+will be used to generate the text.
+
+In the example below, both sections are equivalent.
+
+```lua
+{
+  text = {
+    { "  ", hl = "SnacksDashboardIcon" },
+    { "Find File", hl = "SnacksDashboardDesc", width = 50 },
+    { "[f]", hl = "SnacksDashboardKey" },
+  },
+  action = ":Telescope find_files",
+  key = "f",
+},
+```
+
+```lua
+{
+  action = ":Telescope find_files",
+  key = "f",
+  desc = "Find File",
+  icon = " ",
+},
+```
+
 <!-- docgen -->
 
 ## ⚙️ Config
 
 ```lua
 ---@class snacks.dashboard.Config
----@field sections (snacks.dashboard.Section|fun():snacks.dashboard.Section[])[]
+---@field sections (snacks.dashboard.Section|fun(opts:snacks.dashboard.Opts):(snacks.dashboard.Section|snacks.dashboard.Section[]|nil))[]
 ---@field formats table<string, snacks.dashboard.Text|fun(value:string):snacks.dashboard.Text>
----@field wo vim.wo window options
----@field bo vim.bo buffer options
 {
+  -- These settings are only relevant if you don't configure your own sections
+  preset = {
+    -- Set this to the action to restore the session.
+    -- The default tries to use one of `persistence.nvim`, `persisted.nvim`, `neovim-session-manager` or `posession.nvim`
+    ---@type string|fun()|nil
+    session = nil,
+    -- Defaults to a picker that supports `fzf-lua`, `telescope.nvim` and `mini.pick`
+    ---@type fun(cmd:string, opts:table)|nil
+    pick = nil,
+    recent_files = false, -- if true, show recent files
+  },
   formats = {
     key = { "[%s]", hl = "SnacksDashboardKey" },
     icon = { "%s", hl = "SnacksDashboardIcon", width = 3 },
@@ -29,48 +119,52 @@
   sections = {
     {
       header = [[
-           ██╗      █████╗ ███████╗██╗   ██╗██╗   ██╗██╗███╗   ███╗          Z
-           ██║     ██╔══██╗╚══███╔╝╚██╗ ██╔╝██║   ██║██║████╗ ████║      Z    
-           ██║     ███████║  ███╔╝  ╚████╔╝ ██║   ██║██║██╔████╔██║   z       
-           ██║     ██╔══██║ ███╔╝    ╚██╔╝  ╚██╗ ██╔╝██║██║╚██╔╝██║ z         
-           ███████╗██║  ██║███████╗   ██║    ╚████╔╝ ██║██║ ╚═╝ ██║           
-           ╚══════╝╚═╝  ╚═╝╚══════╝   ╚═╝     ╚═══╝  ╚═╝╚═╝     ╚═╝           
+███╗   ██╗███████╗ ██████╗ ██╗   ██╗██╗███╗   ███╗
+████╗  ██║██╔════╝██╔═══██╗██║   ██║██║████╗ ████║
+██╔██╗ ██║█████╗  ██║   ██║██║   ██║██║██╔████╔██║
+██║╚██╗██║██╔══╝  ██║   ██║╚██╗ ██╔╝██║██║╚██╔╝██║
+██║ ╚████║███████╗╚██████╔╝ ╚████╔╝ ██║██║ ╚═╝ ██║
+╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝
           ]],
     },
-    -- {
-    --   text = {
-    --     { " ", hl = "SnacksDashboardIcon" },
-    --     { " Find File", hl = "SnacksDashboardDesc", width = 50 },
-    --     { "[f]", hl = "SnacksDashboardKey" },
-    --   },
-    --   action = "lua LazyVim.pick()()",
-    --   key = "f",
-    -- },
-    { action = "<leader>ff", desc = "Find File", icon = " ", key = "f" },
-    {},
-    { action = ":ene | startinsert", desc = "New File", icon = " ", key = "n" },
-    {},
-    { action = "<leader>sg", desc = "Find Text", icon = " ", key = "g" },
-    {},
-    { action = "<leader>fc", desc = "Config", icon = " ", key = "c" },
-    {},
-    { action = "<leader>qs", desc = "Restore Session", icon = " ", key = "s" },
-    {},
-    { action = ":LazyExtras", desc = "Lazy Extras", icon = " ", key = "x" },
-    {},
-    { action = ":Lazy", desc = "Lazy", icon = "󰒲 ", key = "l" },
-    {},
-    { action = ":qa", desc = "Quit", icon = " ", key = "q" },
-    {},
-    { action = "<leader>fr", desc = "Recent Files", icon = " ", key = "r" },
-    -- function()
-    --   return Snacks.dashboard.sections.recent_files()
-    -- end,
+    { action = ":lua Snacks.dashboard.pick('files')", desc = "Find File", icon = " ", key = "f", nl = true },
+    { action = ":ene | startinsert", desc = "New File", icon = " ", key = "n", nl = true },
+    { action = ":lua Snacks.dashboard.pick('live_grep')", desc = "Find Text", icon = " ", key = "g", nl = true },
+    {
+      action = ":lua Snacks.dashboard.pick('files', {cwd = vim.fn.stdpath('config')})",
+      desc = "Config",
+      icon = " ",
+      key = "c",
+      nl = true,
+    },
+    ---@param opts snacks.dashboard.Opts
+    function(opts)
+      return Snacks.dashboard.sections.session(opts)
+    end,
+    { action = ":Lazy", desc = "Lazy", icon = "󰒲 ", key = "l", nl = true, enabled = package.loaded.lazy },
+    { action = ":qa", desc = "Quit", icon = " ", key = "q", nl = true },
+    { action = ":lua Snacks.dashboard.pick('oldfiles')", desc = "Recent Files", icon = " ", key = "r" },
+    ---@param opts snacks.dashboard.Opts
+    function(opts)
+      return opts.preset.recent_files and Snacks.dashboard.sections.recent_files()
+    end,
     {},
     function()
       return Snacks.dashboard.sections.startup()
     end,
   },
+}
+```
+
+## 🎨 Styles
+
+### `dashboard`
+
+```lua
+{
+  zindex = 10,
+  height = 0.6,
+  width = 0.6,
   bo = {
     bufhidden = "wipe",
     buftype = "nofile",
@@ -113,6 +207,8 @@
 --- * if it's a string, it will be executed as a keymap
 --- * if it's a function, it will be called
 ---@field action? fun()|string
+---@field enabled? boolean|fun(opts:snacks.dashboard.Opts):boolean if false, the section will be disabled
+---@field nl? boolean if true, add an extra newline after the section
 ---@field key? string shortcut key
 ---@field text? snacks.dashboard.Text[]|fun():snacks.dashboard.Text[]
 --- If text is not provided, these fields will be used to generate the text.
@@ -141,6 +237,12 @@
 Snacks.dashboard()
 ```
 
+### `Snacks.dashboard.have_pugin()`
+
+```lua
+Snacks.dashboard.have_pugin(name)
+```
+
 ### `Snacks.dashboard.icon()`
 
 ```lua
@@ -159,6 +261,12 @@ Snacks.dashboard.icon(cat, name, default)
 Snacks.dashboard.open(opts)
 ```
 
+### `Snacks.dashboard.pick()`
+
+```lua
+Snacks.dashboard.pick(cmd, opts)
+```
+
 ### `Snacks.dashboard.sections.recent_files()`
 
 Get the most recent files
@@ -168,12 +276,19 @@ Get the most recent files
 Snacks.dashboard.sections.recent_files(opts)
 ```
 
+### `Snacks.dashboard.sections.session()`
+
+```lua
+---@param opts snacks.dashboard.Opts
+Snacks.dashboard.sections.session(opts)
+```
+
 ### `Snacks.dashboard.sections.startup()`
 
 Add the startup section
 
 ```lua
----@return snacks.dashboard.Section[]
+---@return snacks.dashboard.Section?
 Snacks.dashboard.sections.startup()
 ```
 
