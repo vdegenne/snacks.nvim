@@ -87,33 +87,22 @@ In the example below, both sections are equivalent.
 
 ```lua
 ---@class snacks.dashboard.Config
----@field sections (snacks.dashboard.Section|fun(opts:snacks.dashboard.Opts):(snacks.dashboard.Section|snacks.dashboard.Section[]|nil))[]
----@field formats table<string, snacks.dashboard.Text|fun(value:string):snacks.dashboard.Text>
+---@field sections snacks.dashboard.Section
+---@field formats table<string, snacks.dashboard.Text|fun(item:snacks.dashboard.Item, ctx:sncaks.dashboard.Format.ctx):snacks.dashboard.Text>
 {
+  width = 56,
   -- These settings are only relevant if you don't configure your own sections
   preset = {
-    -- Set this to the action to restore the session.
-    -- The default tries to use one of `persistence.nvim`, `persisted.nvim`, `neovim-session-manager` or `posession.nvim`
-    ---@type string|fun()|nil
-    session = nil,
     -- Defaults to a picker that supports `fzf-lua`, `telescope.nvim` and `mini.pick`
     ---@type fun(cmd:string, opts:table)|nil
     pick = nil,
-    recent_files = false, -- if true, show recent files
+    recent_files = true, -- if true, show recent files
   },
   formats = {
-    key = { "[%s]", hl = "SnacksDashboardKey" },
-    icon = { "%s", hl = "SnacksDashboardIcon", width = 3 },
-    desc = { "%s", hl = "SnacksDashboardDesc", width = 50 },
-    header = { "%s", hl = "SnacksDashboardHeader" },
-    footer = { "%s", hl = "SnacksDashboardFooter" },
-    title = { "%s", hl = "SnacksDashboardTitle", width = 53 },
-    file_icon = function(file)
-      return Snacks.dashboard.icon("file", file)
-    end,
-    file = function(file)
-      local fname = vim.fn.fnamemodify(file, ":p:~:.")
-      return { #fname > 50 and vim.fn.pathshorten(fname) or fname, hl = "SnacksDashboardFile", width = 50 }
+    icon = { "%s", width = 2 },
+    file = function(item, ctx)
+      local fname = vim.fn.fnamemodify(item.file, ":p:~:.")
+      return { ctx.width and #fname > ctx.width and vim.fn.pathshorten(fname) or fname, hl = "file" }
     end,
   },
   sections = {
@@ -127,31 +116,33 @@ In the example below, both sections are equivalent.
 ╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝
           ]],
     },
-    { action = ":lua Snacks.dashboard.pick('files')", desc = "Find File", icon = " ", key = "f", nl = true },
-    { action = ":ene | startinsert", desc = "New File", icon = " ", key = "n", nl = true },
-    { action = ":lua Snacks.dashboard.pick('live_grep')", desc = "Find Text", icon = " ", key = "g", nl = true },
+    { title = "Keymaps", icon = " " },
     {
-      action = ":lua Snacks.dashboard.pick('files', {cwd = vim.fn.stdpath('config')})",
-      desc = "Config",
-      icon = " ",
-      key = "c",
-      nl = true,
+      indent = 2,
+      -- spacing = 1,
+      { icon = " ", key = "f", desc = "Find File", action = ":lua Snacks.dashboard.pick('files')" },
+      { icon = " ", key = "n", desc = "New File", action = ":ene | startinsert" },
+      { icon = " ", key = "g", desc = "Find Text", action = ":lua Snacks.dashboard.pick('live_grep')" },
+      { icon = " ", key = "r", desc = "Recent Files", action = ":lua Snacks.dashboard.pick('oldfiles')" },
+      {
+        icon = " ",
+        key = "c",
+        desc = "Config",
+        action = ":lua Snacks.dashboard.pick('files', {cwd = vim.fn.stdpath('config')})",
+      },
+      { icon = " ", key = "s", desc = "Restore Session", section = "session" },
+      { icon = "󰒲 ", key = "l", desc = "Lazy", action = ":Lazy", enabled = package.loaded.lazy },
+      { icon = " ", key = "q", desc = "Quit", action = ":qa" },
     },
-    ---@param opts snacks.dashboard.Opts
-    function(opts)
-      return Snacks.dashboard.sections.session(opts)
-    end,
-    { action = ":Lazy", desc = "Lazy", icon = "󰒲 ", key = "l", nl = true, enabled = package.loaded.lazy },
-    { action = ":qa", desc = "Quit", icon = " ", key = "q", nl = true },
-    { action = ":lua Snacks.dashboard.pick('oldfiles')", desc = "Recent Files", icon = " ", key = "r" },
-    ---@param opts snacks.dashboard.Opts
-    function(opts)
-      return opts.preset.recent_files and Snacks.dashboard.sections.recent_files()
-    end,
     {},
-    function()
-      return Snacks.dashboard.sections.startup()
-    end,
+    { title = "Recent Files", icon = " " },
+    {
+      section = "recent_files",
+      opts = { limit = 5, cwd = false },
+      indent = 2,
+    },
+    {},
+    { section = "startup" },
   },
 }
 ```
@@ -197,33 +188,44 @@ The other options are used with `:lua Snacks.dashboard()`
 ## 📚 Types
 
 ```lua
----@class snacks.dashboard.Text
----@field [1] string the text
----@field hl? string the highlight group
----@field align? "left" | "center" | "right"
----@field width? number the width used for alignment
+---@alias sncaks.dashboard.Format.ctx {width?:number}
 ```
 
 ```lua
----@class snacks.dashboard.Section
+---@class snacks.dashboard.Item
+---@field indent? number
+---@field align? "left" | "center" | "right"
+---@field spacing? number
 --- The action to run when the section is selected or the key is pressed.
 --- * if it's a string starting with `:`, it will be run as a command
 --- * if it's a string, it will be executed as a keymap
 --- * if it's a function, it will be called
 ---@field action? fun()|string
 ---@field enabled? boolean|fun(opts:snacks.dashboard.Opts):boolean if false, the section will be disabled
----@field nl? boolean if true, add an extra newline after the section
+---@field section? string the name of a section to include. See `Snacks.dashboard.sections`
+---@field opts? table options to pass to the section
 ---@field key? string shortcut key
----@field text? snacks.dashboard.Text[]|fun():snacks.dashboard.Text[]
---- If text is not provided, these fields will be used to generate the text.
---- See `snacks.dashboard.Config.formats` for the default formats.
+---@field label? string
 ---@field desc? string
 ---@field file? string
----@field file_icon? string
 ---@field footer? string
 ---@field header? string
 ---@field icon? string
 ---@field title? string
+---@field text? string|snacks.dashboard.Text[]
+```
+
+```lua
+---@alias snacks.dashboard.Gen fun(opts:snacks.dashboard.Opts):(snacks.dashboard.Item|snacks.dashboard.Item[])
+---@class snacks.dashboard.Section: snacks.dashboard.Item
+---@field [number] snacks.dashboard.Section|snacks.dashboard.Gen
+```
+
+```lua
+---@class snacks.dashboard.Text
+---@field [1] string the text
+---@field hl? string the highlight group
+---@field width? number the width used for alignment
 ```
 
 ```lua
@@ -285,7 +287,7 @@ Snacks.dashboard.pick(cmd, opts)
 Get the most recent files
 
 ```lua
----@param opts? {limit?:number}
+---@param opts? {limit?:number, cwd?:boolean}
 Snacks.dashboard.sections.recent_files(opts)
 ```
 
@@ -294,8 +296,7 @@ Snacks.dashboard.sections.recent_files(opts)
 Adds a section to restore the session if any of the supported plugins are installed.
 
 ```lua
----@param opts snacks.dashboard.Opts
-Snacks.dashboard.sections.session(opts)
+Snacks.dashboard.sections.session()
 ```
 
 ### `Snacks.dashboard.sections.startup()`
