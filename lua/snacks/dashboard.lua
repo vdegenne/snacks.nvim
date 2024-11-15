@@ -18,6 +18,8 @@ local M = setmetatable({}, {
 --- * if it's a string, it will be executed as a keymap
 --- * if it's a function, it will be called
 ---@field action? fun()|string
+---@field enabled? boolean|fun(opts:snacks.dashboard.Opts):boolean if false, the section will be disabled
+---@field nl? boolean if true, add an extra newline after the section
 ---@field key? string shortcut key
 ---@field text? snacks.dashboard.Text[]|fun():snacks.dashboard.Text[]
 --- If text is not provided, these fields will be used to generate the text.
@@ -31,9 +33,20 @@ local M = setmetatable({}, {
 ---@field title? string
 
 ---@class snacks.dashboard.Config
----@field sections (snacks.dashboard.Section|fun():snacks.dashboard.Section[])[]
+---@field sections (snacks.dashboard.Section|fun(opts:snacks.dashboard.Opts):(snacks.dashboard.Section|snacks.dashboard.Section[]|nil))[]
 ---@field formats table<string, snacks.dashboard.Text|fun(value:string):snacks.dashboard.Text>
 local defaults = {
+  -- These settings are only relevant if you don't configure your own sections
+  preset = {
+    -- Set this to the action to restore the session.
+    -- The default tries to use one of `persistence.nvim`, `persisted.nvim`, `neovim-session-manager` or `posession.nvim`
+    ---@type string|fun()|nil
+    session = nil,
+    -- Defaults to a picker that supports `fzf-lua`, `telescope.nvim` and `mini.pick`
+    ---@type fun(cmd:string, opts:table)|nil
+    pick = nil,
+    recent_files = false, -- if true, show recent files
+  },
   formats = {
     key = { "[%s]", hl = "SnacksDashboardKey" },
     icon = { "%s", hl = "SnacksDashboardIcon", width = 3 },
@@ -52,43 +65,35 @@ local defaults = {
   sections = {
     {
       header = [[
-           ██╗      █████╗ ███████╗██╗   ██╗██╗   ██╗██╗███╗   ███╗          Z
-           ██║     ██╔══██╗╚══███╔╝╚██╗ ██╔╝██║   ██║██║████╗ ████║      Z    
-           ██║     ███████║  ███╔╝  ╚████╔╝ ██║   ██║██║██╔████╔██║   z       
-           ██║     ██╔══██║ ███╔╝    ╚██╔╝  ╚██╗ ██╔╝██║██║╚██╔╝██║ z         
-           ███████╗██║  ██║███████╗   ██║    ╚████╔╝ ██║██║ ╚═╝ ██║           
-           ╚══════╝╚═╝  ╚═╝╚══════╝   ╚═╝     ╚═══╝  ╚═╝╚═╝     ╚═╝           
+███╗   ██╗███████╗ ██████╗ ██╗   ██╗██╗███╗   ███╗
+████╗  ██║██╔════╝██╔═══██╗██║   ██║██║████╗ ████║
+██╔██╗ ██║█████╗  ██║   ██║██║   ██║██║██╔████╔██║
+██║╚██╗██║██╔══╝  ██║   ██║╚██╗ ██╔╝██║██║╚██╔╝██║
+██║ ╚████║███████╗╚██████╔╝ ╚████╔╝ ██║██║ ╚═╝ ██║
+╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝
           ]],
     },
-    -- {
-    --   text = {
-    --     { " ", hl = "SnacksDashboardIcon" },
-    --     { " Find File", hl = "SnacksDashboardDesc", width = 50 },
-    --     { "[f]", hl = "SnacksDashboardKey" },
-    --   },
-    --   action = "lua LazyVim.pick()()",
-    --   key = "f",
-    -- },
-    { action = "<leader>ff", desc = "Find File", icon = " ", key = "f" },
-    {},
-    { action = ":ene | startinsert", desc = "New File", icon = " ", key = "n" },
-    {},
-    { action = "<leader>sg", desc = "Find Text", icon = " ", key = "g" },
-    {},
-    { action = "<leader>fc", desc = "Config", icon = " ", key = "c" },
-    {},
-    { action = "<leader>qs", desc = "Restore Session", icon = " ", key = "s" },
-    {},
-    { action = ":LazyExtras", desc = "Lazy Extras", icon = " ", key = "x" },
-    {},
-    { action = ":Lazy", desc = "Lazy", icon = "󰒲 ", key = "l" },
-    {},
-    { action = ":qa", desc = "Quit", icon = " ", key = "q" },
-    {},
-    { action = "<leader>fr", desc = "Recent Files", icon = " ", key = "r" },
-    -- function()
-    --   return Snacks.dashboard.sections.recent_files()
-    -- end,
+    { action = ":lua Snacks.dashboard.pick('files')", desc = "Find File", icon = " ", key = "f", nl = true },
+    { action = ":ene | startinsert", desc = "New File", icon = " ", key = "n", nl = true },
+    { action = ":lua Snacks.dashboard.pick('live_grep')", desc = "Find Text", icon = " ", key = "g", nl = true },
+    {
+      action = ":lua Snacks.dashboard.pick('files', {cwd = vim.fn.stdpath('config')})",
+      desc = "Config",
+      icon = " ",
+      key = "c",
+      nl = true,
+    },
+    ---@param opts snacks.dashboard.Opts
+    function(opts)
+      return Snacks.dashboard.sections.session(opts)
+    end,
+    { action = ":Lazy", desc = "Lazy", icon = "󰒲 ", key = "l", nl = true, enabled = package.loaded.lazy },
+    { action = ":qa", desc = "Quit", icon = " ", key = "q", nl = true },
+    { action = ":lua Snacks.dashboard.pick('oldfiles')", desc = "Recent Files", icon = " ", key = "r" },
+    ---@param opts snacks.dashboard.Opts
+    function(opts)
+      return opts.preset.recent_files and Snacks.dashboard.sections.recent_files()
+    end,
     {},
     function()
       return Snacks.dashboard.sections.startup()
@@ -176,7 +181,9 @@ function D:init()
     vim.api.nvim_set_option_value(k, v, { buf = self.buf })
   end
   vim.o.ei = ""
-  vim.keymap.set("n", "<esc>", "<cmd>bd<cr>", { silent = true, buffer = self.buf })
+  if self:is_float() then
+    vim.keymap.set("n", "<esc>", "<cmd>bd<cr>", { silent = true, buffer = self.buf })
+  end
   vim.keymap.set("n", "q", "<cmd>bd<cr>", { silent = true, buffer = self.buf })
   vim.api.nvim_create_autocmd("WinResized", {
     buffer = self.buf,
@@ -199,10 +206,14 @@ function D:size()
   }
 end
 
+function D:is_float()
+  return vim.api.nvim_win_get_config(self.win).relative ~= ""
+end
+
 ---@param action string|fun()
 function D:action(action)
   -- close the window before running the action if it's floating
-  if not self.opts.win then
+  if self:is_float() then
     vim.api.nvim_win_close(self.win, true)
     self.win = nil
   end
@@ -255,13 +266,23 @@ end
 
 function D:sections()
   local ret = {} ---@type snacks.dashboard.Section[]
+  ---@param section snacks.dashboard.Section
+  local function enabled(section)
+    local e = section.enabled
+    if type(e) == "function" then
+      return e(self.opts)
+    end
+    return e == nil or e
+  end
   for _, section in ipairs(self.opts.sections) do
-    if type(section) == "function" then
-      for _, s in ipairs(section()) do
+    local sections = type(section) == "function" and (section(self.opts) or {}) or { section }
+    ---@cast sections snacks.dashboard.Section[]|snacks.dashboard.Section
+    sections = vim.tbl_isempty(sections) and {} or sections[1] and sections or { sections }
+    ---@cast sections snacks.dashboard.Section[]
+    for _, s in ipairs(sections) do
+      if enabled(s) then
         table.insert(ret, s)
       end
-    else
-      table.insert(ret, section)
     end
   end
   return ret
@@ -289,6 +310,9 @@ function D:render()
           first_action, last_action = first_action or row, row
         end
       end
+    end
+    if section.nl then
+      lines[row + 1] = ""
     end
     if section.key then
       vim.keymap.set("n", section.key, function()
@@ -388,26 +412,86 @@ end
 ---@param default? string
 ---@return snacks.dashboard.Text
 function M.icon(cat, name, default)
-  local ret = { default or " ", hl = "SnacksDashboardIcon", width = 3 }
-  local ok, MiniIcons = pcall(require, "mini.icons")
-  if ok then
-    ret[1], ret.hl = MiniIcons.get(cat, name) --[[@as string, string, boolean]]
-  else
-    local ok, DevIcons = pcall(require, "nvim-web-devicons")
-    if ok then
+  local try = {
+    function()
+      return require("mini.icons").get(cat, name)
+    end,
+    function()
       if cat == "filetype" then
-        ret[1], ret.hl = DevIcons.get_icon_by_filetype(name)
+        return require("nvim-web-devicons").get_icon_by_filetype(name)
       elseif cat == "file" then
-        ret[1], ret.hl = DevIcons.get_icon(name) --[[@as string, string]]
+        return require("nvim-web-devicons").get_icon(name)
       elseif cat == "extension" then
-        ret[1], ret.hl = DevIcons.get_icon(nil, name) --[[@as string, string]]
+        return require("nvim-web-devicons").get_icon(nil, name)
       end
+    end,
+  }
+  for _, fn in ipairs(try) do
+    local ok, icon, hl = pcall(fn)
+    if ok then
+      return { icon, hl = hl, width = 3 }
     end
   end
-  return ret
+  return { default or " ", hl = "SnacksDashboardIcon", width = 3 }
+end
+
+function M.pick(cmd, opts)
+  local config = Snacks.config.get("dashboard", defaults, opts)
+  local try = {
+    function()
+      return config.preset.pick(cmd, opts)
+    end,
+    function()
+      return require("fzf-lua")[cmd](opts)
+    end,
+    function()
+      cmd = cmd == "files" and "find_files" or cmd
+      return require("telescope.builtin")[cmd](opts)
+    end,
+    function()
+      return require("mini.pick").builtin[cmd](opts)
+    end,
+  }
+  for _, fn in ipairs(try) do
+    if pcall(fn) then
+      return
+    end
+  end
+  Snacks.notify.error("No picker found for " .. cmd)
+end
+
+function M.have_pugin(name)
+  return package.loaded.lazy and require("lazy.core.config").spec.plugins[name] ~= nil
 end
 
 M.sections = {}
+
+---@param opts snacks.dashboard.Opts
+function M.sections.session(opts)
+  local load = opts.preset.session
+  if load == nil then
+    local plugins = {
+      ["persistence.nvim"] = ":lua require('persistence').load()",
+      ["persisted.nvim"] = ":SessionLoad",
+      ["neovim-session-manager"] = ":SessionManager load_current_dir_session",
+      ["possession.nvim"] = ":PossessionLoadCwd",
+    }
+    for name, action in pairs(plugins) do
+      if M.have_pugin(name) then
+        load = action
+        break
+      end
+    end
+  end
+  return load
+    and {
+      action = load,
+      desc = "Restore Session",
+      icon = " ",
+      key = "s",
+      nl = true,
+    }
+end
 
 --- Get the most recent files
 ---@param opts? {limit?:number}
@@ -433,20 +517,19 @@ function M.sections.recent_files(opts)
 end
 
 --- Add the startup section
----@return snacks.dashboard.Section[]
+---@return snacks.dashboard.Section?
 function M.sections.startup()
+  if not package.loaded.lazy then
+    return
+  end
   M.lazy_stats = M.lazy_stats and M.lazy_stats.startuptime > 0 and M.lazy_stats or require("lazy.stats").stats()
+  local ms = (math.floor(M.lazy_stats.startuptime * 100 + 0.5) / 100)
   return {
-    {
-      text = function()
-        local ms = (math.floor(M.lazy_stats.startuptime * 100 + 0.5) / 100)
-        return {
-          { "⚡ Neovim loaded ", hl = "SnacksDashboardFooter" },
-          { M.lazy_stats.loaded .. "/" .. M.lazy_stats.count, hl = "SnacksDashboardSpecial" },
-          { " plugins in ", hl = "SnacksDashboardFooter" },
-          { ms .. "ms", hl = "SnacksDashboardSpecial" },
-        }
-      end,
+    text = {
+      { "⚡ Neovim loaded ", hl = "SnacksDashboardFooter" },
+      { M.lazy_stats.loaded .. "/" .. M.lazy_stats.count, hl = "SnacksDashboardSpecial" },
+      { " plugins in ", hl = "SnacksDashboardFooter" },
+      { ms .. "ms", hl = "SnacksDashboardSpecial" },
     },
   }
 end
