@@ -46,7 +46,7 @@ local query = vim.treesitter.query.parse(
 ---@field mod? string
 ---@field methods {name: string, args: string, comment?: string, types?: string, type: "method"|"function"}[]
 ---@field types string[]
----@field styles {name:string, opts:string}[]
+---@field styles {name:string, opts:string, comment?:string}[]
 
 ---@param lines string[]
 function M.parse(lines)
@@ -137,14 +137,13 @@ function M.extract(lines)
     elseif c.name == "fun" then
       local name = c.fields.name:sub(2)
       local args = (c.fields.params or ""):sub(2, -2)
-      local comment = c.comment
       local type = name:sub(1, 1)
       name = name:sub(2)
       if not name:find("^_") then
-        table.insert(ret.methods, { name = name, args = args, comment = comment, type = type })
+        table.insert(ret.methods, { name = name, args = args, comment = c.comment, type = type })
       end
     elseif c.name == "style" then
-      table.insert(ret.styles, { name = c.fields.name, opts = c.fields.config })
+      table.insert(ret.styles, { name = c.fields.name, opts = c.fields.config, comment = c.comment })
     end
   end
 
@@ -221,6 +220,9 @@ function M.render(name, info)
     add("## 🎨 Styles\n")
     for _, style in pairs(info.styles) do
       add(("### `%s`\n"):format(style.name))
+      if style.comment and style.comment ~= "" then
+        add(M.md(style.comment))
+      end
       add(M.md(style.opts))
     end
   end
