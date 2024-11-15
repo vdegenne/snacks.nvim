@@ -101,6 +101,9 @@ local defaults = {
   },
 }
 
+-- The default style for the dashboard.
+-- When opening the dashboard during startup, only the `bo` and `wo` options are used.
+-- The other options are used with `:lua Snacks.dashboard()`
 Snacks.config.style("dashboard", {
   zindex = 10,
   height = 0.6,
@@ -407,6 +410,7 @@ function M.setup()
   M.open({ buf = buf, win = wins[1] })
 end
 
+-- Get an icon
 ---@param cat "file" | "filetype" | "extension"
 ---@param name string
 ---@param default? string
@@ -435,6 +439,8 @@ function M.icon(cat, name, default)
   return { default or " ", hl = "SnacksDashboardIcon", width = 3 }
 end
 
+-- Used by the default preset to pick something
+---@param cmd string
 function M.pick(cmd, opts)
   local config = Snacks.config.get("dashboard", defaults, opts)
   local try = {
@@ -460,12 +466,16 @@ function M.pick(cmd, opts)
   Snacks.notify.error("No picker found for " .. cmd)
 end
 
+-- Checks if the plugin is installed.
+-- Only works with [lazy.nvim](https://github.com/folke/lazy.nvim)
+---@param name string
 function M.have_pugin(name)
   return package.loaded.lazy and require("lazy.core.config").spec.plugins[name] ~= nil
 end
 
 M.sections = {}
 
+-- Adds a section to restore the session if any of the supported plugins are installed.
 ---@param opts snacks.dashboard.Opts
 function M.sections.session(opts)
   local load = opts.preset.session

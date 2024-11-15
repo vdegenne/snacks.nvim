@@ -33,7 +33,7 @@ The default preset comes with support for:
     - fzf-lua <https://github.com/ibhagwan/fzf-lua>
     - telescope.nvim <https://github.com/nvim-telescope/telescope.nvim>
     - mini.pick <https://github.com/echasnovski/mini.pick>
-- session managers:
+- session managers: (only works with lazy.nvim <https://github.com/folke/lazy.nvim>)
     - persistence.nvim <https://github.com/folke/persistence.nvim>
     - persisted.nvim <https://github.com/olimorris/persisted.nvim>
     - neovim-session-manager <https://github.com/Shatur/neovim-session-manager>
@@ -186,6 +186,10 @@ In the example below, both sections are equivalent.
 
 DASHBOARD                                  *snacks-dashboard-styles-dashboard*
 
+The default style for the dashboard. When opening the dashboard during startup,
+only the `bo` and `wo` options are used. The other options are used with `:lua
+Snacks.dashboard()`
+
 >lua
     {
       zindex = 10,
@@ -271,12 +275,18 @@ DASHBOARD                                  *snacks-dashboard-styles-dashboard*
 
 `Snacks.dashboard.have_pugin()`                      *Snacks.dashboard.have_pugin()*
 
+Checks if the plugin is installed. Only works with lazy.nvim
+<https://github.com/folke/lazy.nvim>
+
 >lua
+    ---@param name string
     Snacks.dashboard.have_pugin(name)
 <
 
 
 `Snacks.dashboard.icon()`                            *Snacks.dashboard.icon()*
+
+Get an icon
 
 >lua
     ---@param cat "file" | "filetype" | "extension"
@@ -298,7 +308,10 @@ DASHBOARD                                  *snacks-dashboard-styles-dashboard*
 
 `Snacks.dashboard.pick()`                            *Snacks.dashboard.pick()*
 
+Used by the default preset to pick something
+
 >lua
+    ---@param cmd string
     Snacks.dashboard.pick(cmd, opts)
 <
 
@@ -314,6 +327,9 @@ Get the most recent files
 
 
 `Snacks.dashboard.sections.session()`                      *Snacks.dashboard.sections.session()*
+
+Adds a section to restore the session if any of the supported plugins are
+installed.
 
 >lua
     ---@param opts snacks.dashboard.Opts

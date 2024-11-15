@@ -160,6 +160,10 @@ In the example below, both sections are equivalent.
 
 ### `dashboard`
 
+The default style for the dashboard.
+When opening the dashboard during startup, only the `bo` and `wo` options are used.
+The other options are used with `:lua Snacks.dashboard()`
+
 ```lua
 {
   zindex = 10,
@@ -239,11 +243,17 @@ Snacks.dashboard()
 
 ### `Snacks.dashboard.have_pugin()`
 
+Checks if the plugin is installed.
+Only works with [lazy.nvim](https://github.com/folke/lazy.nvim)
+
 ```lua
+---@param name string
 Snacks.dashboard.have_pugin(name)
 ```
 
 ### `Snacks.dashboard.icon()`
+
+Get an icon
 
 ```lua
 ---@param cat "file" | "filetype" | "extension"
@@ -263,7 +273,10 @@ Snacks.dashboard.open(opts)
 
 ### `Snacks.dashboard.pick()`
 
+Used by the default preset to pick something
+
 ```lua
+---@param cmd string
 Snacks.dashboard.pick(cmd, opts)
 ```
 
@@ -277,6 +290,8 @@ Snacks.dashboard.sections.recent_files(opts)
 ```
 
 ### `Snacks.dashboard.sections.session()`
+
+Adds a section to restore the session if any of the supported plugins are installed.
 
 ```lua
 ---@param opts snacks.dashboard.Opts
