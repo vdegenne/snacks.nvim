@@ -70,7 +70,7 @@ local defaults = {
     footer = { "%s", align = "center" },
     header = { "%s", align = "center" },
     file = function(item, ctx)
-      local fname = vim.fn.fnamemodify(item.file, ":p:~:.")
+      local fname = vim.fn.fnamemodify(item.file, ":~")
       return { ctx.width and #fname > ctx.width and vim.fn.pathshorten(fname) or fname, hl = "file" }
     end,
   },
