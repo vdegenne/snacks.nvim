@@ -6,7 +6,9 @@ local M = setmetatable({}, {
   end,
 })
 
----@alias sncaks.dashboard.Format.ctx {width?:number}
+local uv = vim.uv or vim.loop
+
+---@alias snacks.dashboard.Format.ctx {width?:number}
 
 ---@class snacks.dashboard.Item
 ---@field indent? number
@@ -38,10 +40,21 @@ local M = setmetatable({}, {
 ---@field [1] string the text
 ---@field hl? string the highlight group
 ---@field width? number the width used for alignment
+---@field align? "left" | "center" | "right"
+
+---@private
+---@class snacks.dashboard.Line
+---@field [number] snacks.dashboard.Text
+---@field width number
+
+---@private
+---@class snacks.dashboard.Block
+---@field [number] snacks.dashboard.Line
+---@field width number
 
 ---@class snacks.dashboard.Config
 ---@field sections snacks.dashboard.Section
----@field formats table<string, snacks.dashboard.Text|fun(item:snacks.dashboard.Item, ctx:sncaks.dashboard.Format.ctx):snacks.dashboard.Text>
+---@field formats table<string, snacks.dashboard.Text|fun(item:snacks.dashboard.Item, ctx:snacks.dashboard.Format.ctx):snacks.dashboard.Text>
 local defaults = {
   width = 56,
   -- These settings are only relevant if you don't configure your own sections
@@ -53,11 +66,14 @@ local defaults = {
   },
   formats = {
     icon = { "%s", width = 2 },
+    footer = { "%s", align = "center" },
+    header = { "%s", align = "center" },
     file = function(item, ctx)
       local fname = vim.fn.fnamemodify(item.file, ":p:~:.")
       return { ctx.width and #fname > ctx.width and vim.fn.pathshorten(fname) or fname, hl = "file" }
     end,
   },
+  -- stylua: ignore
   sections = {
     {
       header = [[
@@ -77,12 +93,7 @@ local defaults = {
       { icon = " ", key = "n", desc = "New File", action = ":ene | startinsert" },
       { icon = " ", key = "g", desc = "Find Text", action = ":lua Snacks.dashboard.pick('live_grep')" },
       { icon = " ", key = "r", desc = "Recent Files", action = ":lua Snacks.dashboard.pick('oldfiles')" },
-      {
-        icon = " ",
-        key = "c",
-        desc = "Config",
-        action = ":lua Snacks.dashboard.pick('files', {cwd = vim.fn.stdpath('config')})",
-      },
+      { icon = " ", key = "c", desc = "Config", action = ":lua Snacks.dashboard.pick('files', {cwd = vim.fn.stdpath('config')})" },
       { icon = " ", key = "s", desc = "Restore Session", section = "session" },
       { icon = "󰒲 ", key = "l", desc = "Lazy", action = ":Lazy", enabled = package.loaded.lazy },
       { icon = " ", key = "q", desc = "Quit", action = ":qa" },
@@ -140,6 +151,7 @@ M.ns = vim.api.nvim_create_namespace("snacks_dashboard")
 ---@field opts snacks.dashboard.Opts
 ---@field buf number
 ---@field win number
+---@field hls table<string, string>
 ---@field _size? {width:number, height:number}
 local D = {}
 
@@ -150,6 +162,7 @@ function M.open(opts)
   self.opts = Snacks.config.get("dashboard", defaults, opts) --[[@as snacks.dashboard.Opts]]
   self.buf = self.opts.buf or vim.api.nvim_create_buf(false, true)
   self.win = self.opts.win or Snacks.win({ style = "dashboard", buf = self.buf, enter = true }).win --[[@as number]]
+  self.hls = {}
   self:init()
   self:render()
   return self
@@ -157,17 +170,19 @@ end
 
 function D:init()
   local links = {
-    Normal = "Normal",
-    Title = "Title",
-    Icon = "Special",
-    Key = "Number",
     Desc = "Special",
     File = "Special",
-    Header = "Title",
     Footer = "Title",
+    Header = "Title",
+    Icon = "Special",
+    Key = "Number",
+    Normal = "Normal",
+    Special = "Special",
+    Title = "Title",
   }
   for group, link in pairs(links) do
     vim.api.nvim_set_hl(0, "SnacksDashboard" .. group, { link = link, default = true })
+    self.hls[group:lower()] = "SnacksDashboard" .. group
   end
   vim.api.nvim_win_set_buf(self.win, self.buf)
 
@@ -209,11 +224,6 @@ function D:is_float()
   return vim.api.nvim_win_get_config(self.win).relative ~= ""
 end
 
----@param hl? string
-function D:hl(hl)
-  return hl and hl:find("^[a-z]") and ("SnacksDashboard" .. hl:sub(1, 1):upper() .. hl:sub(2)) or hl
-end
-
 ---@param action string|fun()
 function D:action(action)
   -- close the window before running the action if it's floating
@@ -224,21 +234,20 @@ function D:action(action)
   vim.schedule(function()
     if type(action) == "string" then
       if action:find("^:") then
-        vim.cmd(action:sub(2))
+        return vim.cmd(action:sub(2))
       else
         local keys = vim.api.nvim_replace_termcodes(action, true, true, true)
-        vim.api.nvim_feedkeys(keys, "tm", true)
+        return vim.api.nvim_feedkeys(keys, "tm", true)
       end
-    else
-      action()
     end
+    action()
   end)
 end
 
 ---@param item snacks.dashboard.Item
 ---@param field string
 ---@param width? number
----@return snacks.dashboard.Text
+---@return snacks.dashboard.Text|snacks.dashboard.Text[]
 function D:format_field(item, field, width)
   if type(item[field]) == "table" then
     return item[field]
@@ -249,21 +258,76 @@ function D:format_field(item, field, width)
   elseif type(format) == "function" then
     return format(item, { width = width })
   else
-    local text = vim.deepcopy(format or { "%s" })
+    local text = format and setmetatable({ format[1] }, { __index = format }) or { "%s" }
     text.hl = text.hl or field
-    text[1] = text[1]:format(item[field])
+    text[1] = text[1] == "%s" and item[field] or text[1]:format(item[field])
     return text
   end
 end
 
----@param item snacks.dashboard.Item
----@return snacks.dashboard.Text[]
-function D:format(item)
-  if item.text then
-    return type(item.text) == "string" and { { item.text } } or item.text
+---@param item snacks.dashboard.Text|snacks.dashboard.Line
+---@param width? number
+---@param align? "left"|"center"|"right"
+function D:align(item, width, align)
+  local len = 0
+  if type(item[1]) == "string" then ---@cast item snacks.dashboard.Text
+    width, align, len = width or item.width, align or item.align, vim.api.nvim_strwidth(item[1])
+  else ---@cast item snacks.dashboard.Line
+    if #item == 1 then -- only one text, so align that instead
+      self:align(item[1], width, align)
+      item.width = item[1].width
+      return
+    end
+    len = item.width
   end
 
-  local ret = {} ---@type snacks.dashboard.Text[]
+  if not width or width <= 0 or width == len then
+    return
+  end
+
+  align = align or "left"
+  local before = align == "center" and math.floor((width - len) / 2) or align == "right" and width - len or 0
+  local after = align == "center" and width - len - before or align == "left" and width - len or 0
+
+  if type(item[1]) == "string" then ---@cast item snacks.dashboard.Text
+    item[1] = (" "):rep(before) .. item[1] .. (" "):rep(after)
+    item.width = width
+  else ---@cast item snacks.dashboard.Line
+    if before > 0 then
+      table.insert(item, 1, { (" "):rep(before) })
+    end
+    if after > 0 then
+      table.insert(item, { (" "):rep(after) })
+    end
+    item.width = width
+  end
+end
+
+---@param texts snacks.dashboard.Text[]|snacks.dashboard.Text|string
+function D:block(texts)
+  texts = type(texts) == "string" and { { texts } } or texts
+  texts = type(texts[1]) == "string" and { texts } or texts
+  ---@cast texts snacks.dashboard.Text[]
+  local ret = { { width = 0 }, width = 0 } ---@type snacks.dashboard.Block
+  for _, text in ipairs(texts) do
+    -- PERF: only split lines when needed
+    local lines = text[1]:find("\n", 1, true) and vim.split(text[1], "\n", { plain = true }) or { text[1] }
+    for l, line in ipairs(lines) do
+      if l > 1 then
+        ret[#ret + 1] = { width = 0 }
+      end
+      local child = setmetatable({ line }, { __index = text })
+      self:align(child)
+      ret[#ret].width = ret[#ret].width + vim.api.nvim_strwidth(child[1])
+      ret.width = math.max(ret.width, ret[#ret].width)
+      table.insert(ret[#ret], child)
+    end
+  end
+  return ret
+end
+
+---@param item snacks.dashboard.Item
+function D:format(item)
   local width = item.indent or 0
 
   ---@param fields string[]
@@ -272,33 +336,37 @@ function D:format(item)
     local flex = opts.flex and math.max(0, self.opts.width - width) or nil
     for _, k in ipairs(fields) do
       if item[k] then
-        local text = self:format_field(item, k, flex)
-        local tw = (text.width or flex or vim.api.nvim_strwidth(text[1] or "")) + (opts.padding or 0)
-        text[1] = self:align(text[1], { width = tw, align = opts.align or text.align or item.align })
-        width = width + tw
-        return { text }
+        local block = self:block(self:format_field(item, k, flex))
+        block.width = block.width + (opts.padding or 0)
+        width = width + block.width
+        return block
       end
     end
+    return { width = 0 }
   end
 
-  vim.list_extend(ret, find({ "icon" }, { align = "left", padding = 1 }) or {})
-  local right = find({ "label", "key" }, { align = "right", padding = 1 })
-  vim.list_extend(ret, find({ "file", "desc", "header", "footer", "title" }, { flex = true }) or {})
-  vim.list_extend(ret, right or {})
+  local block = item.text and self:block(item.text)
+  local left = block and { width = 0 } or find({ "icon" }, { align = "left", padding = 1 })
+  local right = block and { width = 0 } or find({ "label", "key" }, { align = "right", padding = 1 })
+  local center = block or find({ "file", "desc", "header", "footer", "title" }, { flex = true })
+
+  local ret = { width = self.opts.width } ---@type snacks.dashboard.Block
+  for l = 1, math.max(#left, #center, #right, 1) + (item.spacing or 0) do
+    ret[l] = { width = self.opts.width }
+    left[l] = left[l] or { width = 0 }
+    right[l] = right[l] or { width = 0 }
+    center[l] = center[l] or { width = 0 }
+    self:align(left[l], left.width, "left")
+    if item.indent then
+      self:align(left[l], left[l].width + item.indent, "right")
+    end
+    self:align(right[l], right.width, "right")
+    self:align(center[l], self.opts.width - left[l].width - right[l].width, item.align)
+    vim.list_extend(ret[l], left[l])
+    vim.list_extend(ret[l], center[l])
+    vim.list_extend(ret[l], right[l])
+  end
   return ret
-end
-
----@param str string
----@param opts {width:number, align?:"left"|"center"|"right"}
-function D:align(str, opts)
-  local align, len = opts.align or "left", vim.fn.strdisplaywidth(str)
-  if align == "left" then
-    return str .. (" "):rep(opts.width - len)
-  elseif align == "right" then
-    return (" "):rep(opts.width - len) .. str
-  end
-  local before = math.floor((opts.width - len) / 2)
-  return (" "):rep(before) .. str .. (" "):rep(opts.width - len - before)
 end
 
 ---@param item snacks.dashboard.Item
@@ -323,7 +391,7 @@ function D:resolve(item, results, parent)
   elseif type(item) == "table" and self:enabled(item) then
     if item.section then
       setmetatable(item, { __index = parent })
-      local items = M.sections[item.section](item.opts)
+      local items = M.sections[item.section](item.opts) ---@type snacks.dashboard.Item[]
       self:resolve(items, results, item)
     elseif item[1] then
       setmetatable(item, { __index = parent })
@@ -334,38 +402,32 @@ function D:resolve(item, results, parent)
       setmetatable(item, { __index = parent })
       table.insert(results, item)
     end
+  else
+    Snacks.notify.error("Invalid item:\n```lua\n" .. vim.inspect(item) .. "\n```", { title = "Dashboard" })
   end
   return results
 end
 
 function D:render()
+  self._size = self:size()
+
   local lines = {} ---@type string[]
   local hls = {} ---@type {row:number, col:number, hl:string, len:number}[]
-  local first_action, last_action = nil, nil ---@type number?, number?
   local items = {} ---@type table<number, snacks.dashboard.Item>
+  local indent = (" "):rep(math.max(math.floor((self._size.width - self.opts.width) / 2), 0))
 
   for _, item in ipairs(self:resolve(self.opts.sections)) do
-    local row = math.max(#lines, 1)
-    lines[row] = ""
-    for t, text in ipairs(self:format(item)) do
-      for l, line in ipairs(vim.split(text[1] or "", "\n", { plain = true })) do
-        row = l > 1 and row + 1 or row --[[@as number]]
-        if (l > 1 or t == 1) and item.indent then
-          lines[row] = (lines[row] or "") .. (" "):rep(item.indent)
-        end
-        lines[row] = (lines[row] or "") .. line
+    for _, line in ipairs(self:format(item)) do
+      lines[#lines + 1] = indent
+      items[#lines] = item
+      ---@cast line snacks.dashboard.Line
+      for _, text in ipairs(line) do
+        lines[#lines] = lines[#lines] .. text[1]
         if text.hl then
-          table.insert(hls, { row = row - 1, col = #lines[row] - #line, hl = self:hl(text.hl), len = #line })
-        end
-        items[row] = item
-        if item.action then
-          first_action, last_action = first_action or row, row
+          local hl = self.hls[text.hl] or text.hl
+          table.insert(hls, { row = #lines - 1, col = #lines[#lines] - #text[1], hl = hl, len = #text[1] })
         end
       end
-    end
-    for _ = 1, 1 + (item.spacing or 0) do
-      row = row + 1
-      lines[row] = ""
     end
     if item.key then
       vim.keymap.set("n", item.key, function()
@@ -374,20 +436,9 @@ function D:render()
     end
   end
 
-  self._size = self:size()
-
-  -- center horizontally
-  local offsets_col = {} ---@type number[]
-  for i, line in ipairs(lines) do
-    local len = vim.api.nvim_strwidth(line)
-    local before = math.max(math.floor((self._size.width - len) / 2), 0)
-    offsets_col[i] = before
-    lines[i] = (" "):rep(before) .. line
-  end
-
-  -- center vertically
-  local offset_row = math.max(math.floor((self._size.height - #lines) / 2), 0)
-  for _ = 1, offset_row do
+  -- vertical centering
+  local offset = math.max(math.floor((self._size.height - #lines) / 2), 0)
+  for _ = 1, offset do
     table.insert(lines, 1, "")
   end
 
@@ -399,34 +450,36 @@ function D:render()
   -- highlights
   vim.api.nvim_buf_clear_namespace(self.buf, M.ns, 0, -1)
   for _, hl in ipairs(hls) do
-    local col = hl.col + offsets_col[hl.row + 1]
-    local row = hl.row + offset_row
-    vim.api.nvim_buf_set_extmark(self.buf, M.ns, row, col, { end_col = col + hl.len, hl_group = hl.hl })
+    local row = hl.row + offset
+    vim.api.nvim_buf_set_extmark(self.buf, M.ns, row, hl.col, { end_col = hl.col + hl.len, hl_group = hl.hl })
   end
 
   -- actions on enter
   vim.keymap.set("n", "<cr>", function()
-    local section = items[vim.api.nvim_win_get_cursor(self.win)[1] - offset_row]
+    local section = items[vim.api.nvim_win_get_cursor(self.win)[1] - offset]
     return section and section.action and self:action(section.action)
   end, { buffer = self.buf, nowait = true, desc = "Dashboard action" })
 
   -- cursor movement
-  local last = first_action
+  local last = 0
   vim.api.nvim_create_autocmd("CursorMoved", {
     group = vim.api.nvim_create_augroup("snacks_dashboard_cursor", { clear = true }),
     buffer = self.buf,
     callback = function()
-      local row = vim.api.nvim_win_get_cursor(self.win)[1]
-      local action = (row > last and last_action or first_action) + offset_row
-      for i = row, row > last and vim.o.lines or 1, row > last and 1 or -1 do
-        local section = items[i - offset_row]
-        if section and section.action then
-          action = i
-          break
+      local row, action = vim.api.nvim_win_get_cursor(self.win)[1], nil
+      for l = offset, #lines do
+        if items[l - offset] and items[l - offset].action and not lines[l]:match("^%s*$") then
+          if action and row < last and l > row then
+            break
+          end
+          action = l
+          if row > last and l > row then
+            break
+          end
         end
       end
-      vim.api.nvim_win_set_cursor(self.win, { action, (lines[action]:find("[%w%d%p]") or 1) - 1 })
-      last = action
+      last = action or row
+      vim.api.nvim_win_set_cursor(self.win, { last, (lines[last]:find("[%w%d%p]") or 1) - 1 })
     end,
   })
 end
@@ -449,7 +502,7 @@ function M.setup()
   end
 
   -- don't open the dashboard if input is piped
-  if vim.uv.guess_handle(3) == "pipe" then
+  if uv.guess_handle(3) == "pipe" then
     return
   end
 
@@ -461,24 +514,13 @@ function M.setup()
 end
 
 -- Get an icon
----@param cat "file" | "filetype" | "extension"
 ---@param name string
----@param default? string
 ---@return snacks.dashboard.Text
-function M.icon(cat, name, default)
+function M.file_icon(name)
+  -- stylua: ignore
   local try = {
-    function()
-      return require("mini.icons").get(cat, name)
-    end,
-    function()
-      if cat == "filetype" then
-        return require("nvim-web-devicons").get_icon_by_filetype(name)
-      elseif cat == "file" then
-        return require("nvim-web-devicons").get_icon(name)
-      elseif cat == "extension" then
-        return require("nvim-web-devicons").get_icon(nil, name)
-      end
-    end,
+    function() return require("mini.icons").get("file", name) end,
+    function() return require("nvim-web-devicons").get_icon(name) end,
   }
   for _, fn in ipairs(try) do
     local ok, icon, hl = pcall(fn)
@@ -486,7 +528,7 @@ function M.icon(cat, name, default)
       return { icon, hl = hl, width = 2 }
     end
   end
-  return { default or " ", hl = "icon", width = 2 }
+  return { " ", hl = "icon", width = 2 }
 end
 
 -- Used by the default preset to pick something
@@ -519,10 +561,6 @@ M.sections = {}
 
 -- Adds a section to restore the session if any of the supported plugins are installed.
 function M.sections.session()
-  local config = Snacks.config.get("dashboard", defaults)
-  if config.preset.session then
-    return { action = config.preset.session }
-  end
   local plugins = {
     ["persistence.nvim"] = ":lua require('persistence').load()",
     ["persisted.nvim"] = ":SessionLoad",
@@ -543,16 +581,9 @@ function M.sections.recent_files(opts)
   local root = opts and opts.cwd and vim.fs.normalize(vim.fn.getcwd()) or ""
   local ret = {} ---@type snacks.dashboard.Section
   for _, file in ipairs(vim.v.oldfiles) do
-    file = vim.fs.normalize(file)
-    if vim.fn.filereadable(file) == 1 and file:find(root) == 1 then
-      ret[#ret + 1] = {
-        file = file,
-        icon = M.icon("file", file),
-        action = function()
-          vim.cmd("e " .. file)
-        end,
-        key = tostring(#ret + 1),
-      }
+    file = vim.fs.normalize(file, { _fast = true, expand_env = false })
+    if file:sub(1, #root) == root and uv.fs_stat(file) then
+      ret[#ret + 1] = { file = file, icon = M.file_icon(file), action = ":e " .. file, key = tostring(#ret + 1) }
       if #ret >= limit then
         break
       end
@@ -564,9 +595,6 @@ end
 --- Add the startup section
 ---@return snacks.dashboard.Section?
 function M.sections.startup()
-  if not package.loaded.lazy then
-    return
-  end
   M.lazy_stats = M.lazy_stats and M.lazy_stats.startuptime > 0 and M.lazy_stats or require("lazy.stats").stats()
   local ms = (math.floor(M.lazy_stats.startuptime * 100 + 0.5) / 100)
   return {

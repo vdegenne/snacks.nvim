@@ -88,7 +88,7 @@ In the example below, both sections are equivalent.
 ```lua
 ---@class snacks.dashboard.Config
 ---@field sections snacks.dashboard.Section
----@field formats table<string, snacks.dashboard.Text|fun(item:snacks.dashboard.Item, ctx:sncaks.dashboard.Format.ctx):snacks.dashboard.Text>
+---@field formats table<string, snacks.dashboard.Text|fun(item:snacks.dashboard.Item, ctx:snacks.dashboard.Format.ctx):snacks.dashboard.Text>
 {
   width = 56,
   -- These settings are only relevant if you don't configure your own sections
@@ -100,6 +100,8 @@ In the example below, both sections are equivalent.
   },
   formats = {
     icon = { "%s", width = 2 },
+    footer = { "%s", align = "center" },
+    header = { "%s", align = "center" },
     file = function(item, ctx)
       local fname = vim.fn.fnamemodify(item.file, ":p:~:.")
       return { ctx.width and #fname > ctx.width and vim.fn.pathshorten(fname) or fname, hl = "file" }
@@ -124,12 +126,7 @@ In the example below, both sections are equivalent.
       { icon = " ", key = "n", desc = "New File", action = ":ene | startinsert" },
       { icon = " ", key = "g", desc = "Find Text", action = ":lua Snacks.dashboard.pick('live_grep')" },
       { icon = " ", key = "r", desc = "Recent Files", action = ":lua Snacks.dashboard.pick('oldfiles')" },
-      {
-        icon = " ",
-        key = "c",
-        desc = "Config",
-        action = ":lua Snacks.dashboard.pick('files', {cwd = vim.fn.stdpath('config')})",
-      },
+      { icon = " ", key = "c", desc = "Config", action = ":lua Snacks.dashboard.pick('files', {cwd = vim.fn.stdpath('config')})" },
       { icon = " ", key = "s", desc = "Restore Session", section = "session" },
       { icon = "󰒲 ", key = "l", desc = "Lazy", action = ":Lazy", enabled = package.loaded.lazy },
       { icon = " ", key = "q", desc = "Quit", action = ":qa" },
@@ -188,7 +185,7 @@ The other options are used with `:lua Snacks.dashboard()`
 ## 📚 Types
 
 ```lua
----@alias sncaks.dashboard.Format.ctx {width?:number}
+---@alias snacks.dashboard.Format.ctx {width?:number}
 ```
 
 ```lua
@@ -226,6 +223,7 @@ The other options are used with `:lua Snacks.dashboard()`
 ---@field [1] string the text
 ---@field hl? string the highlight group
 ---@field width? number the width used for alignment
+---@field align? "left" | "center" | "right"
 ```
 
 ```lua
@@ -243,6 +241,16 @@ The other options are used with `:lua Snacks.dashboard()`
 Snacks.dashboard()
 ```
 
+### `Snacks.dashboard.file_icon()`
+
+Get an icon
+
+```lua
+---@param name string
+---@return snacks.dashboard.Text
+Snacks.dashboard.file_icon(name)
+```
+
 ### `Snacks.dashboard.have_pugin()`
 
 Checks if the plugin is installed.
@@ -251,18 +259,6 @@ Only works with [lazy.nvim](https://github.com/folke/lazy.nvim)
 ```lua
 ---@param name string
 Snacks.dashboard.have_pugin(name)
-```
-
-### `Snacks.dashboard.icon()`
-
-Get an icon
-
-```lua
----@param cat "file" | "filetype" | "extension"
----@param name string
----@param default? string
----@return snacks.dashboard.Text
-Snacks.dashboard.icon(cat, name, default)
 ```
 
 ### `Snacks.dashboard.open()`
