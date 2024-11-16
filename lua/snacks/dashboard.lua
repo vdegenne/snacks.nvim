@@ -553,7 +553,7 @@ end
 -- Checks if the plugin is installed.
 -- Only works with [lazy.nvim](https://github.com/folke/lazy.nvim)
 ---@param name string
-function M.have_pugin(name)
+function M.have_plugin(name)
   return package.loaded.lazy and require("lazy.core.config").spec.plugins[name] ~= nil
 end
 
@@ -568,7 +568,7 @@ function M.sections.session()
     ["possession.nvim"] = ":PossessionLoadCwd",
   }
   for name, action in pairs(plugins) do
-    if M.have_pugin(name) then
+    if M.have_plugin(name) then
       return { action = action }
     end
   end

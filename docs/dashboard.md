@@ -251,14 +251,14 @@ Get an icon
 Snacks.dashboard.file_icon(name)
 ```
 
-### `Snacks.dashboard.have_pugin()`
+### `Snacks.dashboard.have_plugin()`
 
 Checks if the plugin is installed.
 Only works with [lazy.nvim](https://github.com/folke/lazy.nvim)
 
 ```lua
 ---@param name string
-Snacks.dashboard.have_pugin(name)
+Snacks.dashboard.have_plugin(name)
 ```
 
 ### `Snacks.dashboard.open()`

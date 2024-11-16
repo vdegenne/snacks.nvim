@@ -13,7 +13,7 @@ Table of Contents                         *snacks-dashboard-table-of-contents*
 5. Module                                            |snacks-dashboard-module|
   - Snacks.dashboard()            |snacks-dashboard-module-snacks.dashboard()|
   - Snacks.dashboard.file_icon()|snacks-dashboard-module-snacks.dashboard.file_icon()|
-  - Snacks.dashboard.have_pugin()|snacks-dashboard-module-snacks.dashboard.have_pugin()|
+  - Snacks.dashboard.have_plugin()|snacks-dashboard-module-snacks.dashboard.have_plugin()|
   - Snacks.dashboard.open()  |snacks-dashboard-module-snacks.dashboard.open()|
   - Snacks.dashboard.pick()  |snacks-dashboard-module-snacks.dashboard.pick()|
   - Snacks.dashboard.sections.recent_files()|snacks-dashboard-module-snacks.dashboard.sections.recent_files()|
@@ -284,14 +284,14 @@ Get an icon
 <
 
 
-`Snacks.dashboard.have_pugin()`                      *Snacks.dashboard.have_pugin()*
+`Snacks.dashboard.have_plugin()`                      *Snacks.dashboard.have_plugin()*
 
 Checks if the plugin is installed. Only works with lazy.nvim
 <https://github.com/folke/lazy.nvim>
 
 >lua
     ---@param name string
-    Snacks.dashboard.have_pugin(name)
+    Snacks.dashboard.have_plugin(name)
 <
 
 
