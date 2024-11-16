@@ -23,6 +23,7 @@ local uv = vim.uv or vim.loop
 ---@field section? string the name of a section to include. See `Snacks.dashboard.sections`
 ---@field opts? table options to pass to the section
 ---@field key? string shortcut key
+---@field autokey? boolean automatically assign a numerical key
 ---@field label? string
 ---@field desc? string
 ---@field file? string
@@ -416,7 +417,12 @@ function D:render()
   local items = {} ---@type table<number, snacks.dashboard.Item>
   local indent = (" "):rep(math.max(math.floor((self._size.width - self.opts.width) / 2), 0))
 
+  local autokeys = 0
   for _, item in ipairs(self:resolve(self.opts.sections)) do
+    if item.autokey then
+      item.key = tostring(autokeys)
+      autokeys = autokeys + 1
+    end
     for _, line in ipairs(self:format(item)) do
       lines[#lines + 1] = indent
       items[#lines] = item
@@ -432,7 +438,7 @@ function D:render()
     if item.key then
       vim.keymap.set("n", item.key, function()
         self:action(item.action)
-      end, { buffer = self.buf, nowait = true, desc = "Dashboard action" })
+      end, { buffer = self.buf, nowait = not item.autokey, desc = "Dashboard action" })
     end
   end
 
