@@ -403,7 +403,7 @@ function D:resolve(item, results, parent)
       setmetatable(item, { __index = parent })
       table.insert(results, item)
     end
-  else
+  elseif type(item) ~= "table" then
     Snacks.notify.error("Invalid item:\n```lua\n" .. vim.inspect(item) .. "\n```", { title = "Dashboard" })
   end
   return results
