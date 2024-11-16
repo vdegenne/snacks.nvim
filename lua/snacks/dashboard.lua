@@ -515,11 +515,12 @@ end
 
 -- Get an icon
 ---@param name string
+---@param cat? string
 ---@return snacks.dashboard.Text
-function M.file_icon(name)
+function M.icon(name, cat)
   -- stylua: ignore
   local try = {
-    function() return require("mini.icons").get("file", name) end,
+    function() return require("mini.icons").get(cat or "file", name) end,
     function() return require("nvim-web-devicons").get_icon(name) end,
   }
   for _, fn in ipairs(try) do
@@ -575,15 +576,16 @@ function M.sections.session()
 end
 
 --- Get the most recent files
----@param opts? {limit?:number, cwd?:boolean}
+---@param opts? {limit?:number, cwd?:string|boolean}
 function M.sections.recent_files(opts)
-  local limit = opts and opts.limit or 5
-  local root = opts and opts.cwd and vim.fs.normalize(vim.fn.getcwd()) or ""
+  opts = opts or {}
+  local limit = opts.limit or 5
+  local root = opts.cwd and vim.fs.normalize(type(opts.cwd) == "boolean" and vim.fn.getcwd() or opts.cwd)
   local ret = {} ---@type snacks.dashboard.Section
   for _, file in ipairs(vim.v.oldfiles) do
     file = vim.fs.normalize(file, { _fast = true, expand_env = false })
     if file:sub(1, #root) == root and uv.fs_stat(file) then
-      ret[#ret + 1] = { file = file, icon = M.file_icon(file), action = ":e " .. file, key = tostring(#ret + 1) }
+      ret[#ret + 1] = { file = file, icon = M.icon(file), action = ":e " .. file, autokey = true }
       if #ret >= limit then
         break
       end
