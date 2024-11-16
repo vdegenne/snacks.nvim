@@ -479,7 +479,7 @@ function D:render()
             break
           end
           action = l
-          if row > last and l > row then
+          if row >= last and l >= row then
             break
           end
         end
