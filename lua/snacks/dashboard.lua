@@ -143,6 +143,7 @@ local defaults = {
     },
     { section = "startup" },
   },
+  debug = true,
 }
 
 -- The default style for the dashboard.
@@ -169,7 +170,6 @@ Snacks.config.style("dashboard", {
     signcolumn = "no",
     spell = false,
     statuscolumn = "",
-    statusline = "",
     winbar = "",
     winhighlight = "Normal:SnacksDashboardNormal,NormalFloat:SnacksDashboardNormal",
     wrap = false,
@@ -447,7 +447,9 @@ function D:resolve(item, results, parent)
       local start = uv.hrtime()
       local items = M.sections[item.section](item) ---@type snacks.dashboard.Section?
       self:resolve(items, results, item)
-      Snacks.notify("Resolved " .. item.section .. " in **" .. (uv.hrtime() - start) / 1e6 .. "ms**")
+      if self.opts.debug then
+        Snacks.notify("Resolved `" .. item.section .. "` in **" .. (uv.hrtime() - start) / 1e6 .. "ms**")
+      end
     end
     if item[1] then -- add child items
       for _, child in ipairs(item) do
@@ -488,6 +490,7 @@ function D:on(event, cb)
 end
 
 function D:render()
+  local start = uv.hrtime()
   self:fire("RenderPre")
   self._size = self:size()
 
@@ -578,6 +581,9 @@ function D:render()
     end,
   })
   self:fire("RenderPost")
+  if self.opts.debug then
+    Snacks.notify("Rendered dashboard in **" .. (uv.hrtime() - start) / 1e6 .. "ms**")
+  end
 end
 
 --- Check if the dashboard should be opened
