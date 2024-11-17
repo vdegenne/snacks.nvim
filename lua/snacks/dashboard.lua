@@ -680,6 +680,19 @@ function M.sections.recent_files(opts)
   return ret
 end
 
+---@return snacks.dashboard.Gen
+function M.sections.header()
+  return function(self)
+    return { header = self.opts.preset.header, padding = 1 }
+  end
+end
+
+---@return snacks.dashboard.Gen
+function M.sections.keys()
+  return function(self)
+    return vim.deepcopy(self.opts.preset.keys)
+  end
+end
 --- Add the startup section
 ---@return snacks.dashboard.Section?
 function M.sections.startup()
