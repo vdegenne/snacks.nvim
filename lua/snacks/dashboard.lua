@@ -45,6 +45,16 @@ math.randomseed(os.time())
 ---@field align? "left" | "center" | "right"
 
 ---@private
+---@class snacks.dashboard.Item
+---@field package _? snacks.dashboard.Item._ the position of the item in the dashboard
+
+---@private
+---@class snacks.dashboard.Item._
+---@field pane number 1-indexed
+---@field row number 1-indexed
+---@field col number 0-indexed
+
+---@private
 ---@class snacks.dashboard.Line
 ---@field [number] snacks.dashboard.Text
 ---@field width number
@@ -59,6 +69,9 @@ math.randomseed(os.time())
 ---@field formats table<string, snacks.dashboard.Text|fun(item:snacks.dashboard.Item, ctx:snacks.dashboard.Format.ctx):snacks.dashboard.Text>
 local defaults = {
   width = 60,
+  row = nil, -- dashboard position. nil for center
+  col = nil, -- dashboard position. nil for center
+  pane_gap = 4, -- empty columns between vertical panes
   -- These settings are only relevant if you don't configure your own sections
   preset = {
     -- Defaults to a picker that supports `fzf-lua`, `telescope.nvim` and `mini.pick`
@@ -73,7 +86,7 @@ local defaults = {
       { icon = " ", key = "r", desc = "Recent Files", action = ":lua Snacks.dashboard.pick('oldfiles')" },
       { icon = " ", key = "c", desc = "Config", action = ":lua Snacks.dashboard.pick('files', {cwd = vim.fn.stdpath('config')})" },
       { icon = " ", key = "s", desc = "Restore Session", section = "session" },
-      { icon = "󰒲 ", key = "l", desc = "Lazy", action = ":Lazy", enabled = package.loaded.lazy },
+      { icon = "󰒲 ", key = "L", desc = "Lazy", action = ":Lazy", enabled = package.loaded.lazy },
       { icon = " ", key = "q", desc = "Quit", action = ":qa" },
     },
     header = vim.trim(
@@ -95,18 +108,36 @@ local defaults = {
       return { ctx.width and #fname > ctx.width and vim.fn.pathshorten(fname) or fname, hl = "file" }
     end,
   },
+  -- {
+  --   title = "Keymaps",
+  --   enabled = false,
+  --   icon = " ",
+  --   padding = 1,
+  --   indent = 2,
+  --   section = "keys",
+  -- },
+  -- {
+  --   section = "terminal",
+  --   pane = 2,
+  --   -- indent = 0,
+  --   -- cmd = "pokemon-colorscripts -r --no-title; sleep .1",
+  --   -- cmd = "colorscript -r",
+  --   -- cmd = "neofetch",
+  --   -- cmd = "chafa ~/.config/wall.png --format symbols --symbols vhalf --size 60x18 --stretch",
+  --   cmd = "colorscript -e square",
+  --   -- cmd = [[hub l -10 --since='1 week ago' | devmoji --log --color | sed 's/^/  /']],
+  --   height = 5,
+  --   padding = 1,
+  --   -- random = 3,
+  -- },
   sections = {
     { section = "header", enabled = true },
     {
       section = "terminal",
-      cmd = "pokemon-colorscripts -r --no-title; sleep .1",
-      -- cmd = "colorscript -r",
-      -- cmd = "neofetch",
-      cmd = "chafa ~/.config/wall.png --format symbols --symbols vhalf --size 60x18 --stretch",
+      pane = 2,
       cmd = "colorscript -e square",
       height = 5,
       padding = 1,
-      -- random = 3,
     },
     {
       section = "keys",
@@ -115,25 +146,15 @@ local defaults = {
       enabled = true,
     },
     {
-      title = "Keymaps",
-      enabled = false,
-      icon = " ",
-      padding = 1,
-      indent = 2,
-      section = "keys",
-    },
-    {
-      enabled = false,
+      pane = 2,
       title = "Recent Files",
       icon = " ",
       section = "recent_files",
-      limit = 5,
-      cwd = true,
       indent = 2,
       padding = 1,
     },
     {
-      enabled = true,
+      pane = 2,
       title = "Projects",
       icon = " ",
       indent = 2,
@@ -141,9 +162,20 @@ local defaults = {
       limit = 10,
       padding = 1,
     },
+    {
+      title = "Git Status",
+      icon = " ",
+      section = "terminal",
+      pane = 2,
+      cmd = "hub st",
+      height = 5,
+      padding = 1,
+      ttl = 5 * 60,
+      indent = 3,
+    },
     { section = "startup" },
   },
-  debug = false,
+  debug = true,
 }
 
 -- The default style for the dashboard.
@@ -188,6 +220,10 @@ M.ns = vim.api.nvim_create_namespace("snacks_dashboard")
 ---@field win number
 ---@field hls table<string, string>
 ---@field _size? {width:number, height:number}
+---@field items snacks.dashboard.Item[]
+---@field row? number
+---@field col? number
+---@field panes? number
 local D = {}
 
 ---@param opts? snacks.dashboard.Opts
@@ -427,7 +463,7 @@ function D:resolve(item, results, parent)
     return results
   end
   if type(item) == "table" and parent then
-    for _, prop in ipairs({ "indent", "align" }) do
+    for _, prop in ipairs({ "indent", "align", "pane" }) do
       item[prop] = item[prop] or parent[prop]
     end
   end
@@ -441,7 +477,7 @@ function D:resolve(item, results, parent)
     end
     local first_child = #results + 1
     if item.title then -- always add the title
-      table.insert(results, { title = item.title, icon = item.icon })
+      table.insert(results, { title = item.title, icon = item.icon, pane = item.pane })
     end
     if item.section then -- add section items
       local start = uv.hrtime()
@@ -489,6 +525,40 @@ function D:on(event, cb)
   vim.api.nvim_create_autocmd("User", { pattern = "SnacksDashboard" .. event, callback = cb })
 end
 
+---@param pos {[1]:number, [2]:number}
+---@param from? {[1]:number, [2]:number}
+function D:find(pos, from)
+  from = from or pos
+  local line = vim.api.nvim_buf_get_lines(self.buf, pos[1] - 1, pos[1], false)[1] or ""
+  local char = vim.fn.charidx(line, pos[2]) -- map col to charachter index
+
+  local pane = math.floor((char - self.col) / (self.opts.width + self.opts.pane_gap)) + 1
+  pane = math.max(1, math.min(pane, self.panes))
+  if pos[1] == from[1] then
+    dd({ pos = pos, from = from, pane = pane })
+    if pos[2] == from[2] - 1 then
+      pane = pane - 1
+    elseif pos[2] == from[2] + 1 then
+      pane = pane + 1
+    end
+  end
+  pane = math.max(1, math.min(pane, self.panes))
+
+  local ret ---@type snacks.dashboard.Item?
+  for _, item in ipairs(self.items) do
+    if item._.pane == pane and item.action then
+      if ret and pos[1] < from[1] and item._.row > pos[1] then
+        break
+      end
+      ret = item
+      if pos[1] >= from[1] and item._.row >= pos[1] then
+        break
+      end
+    end
+  end
+  return ret
+end
+
 function D:render()
   local start = uv.hrtime()
   self:fire("RenderPre")
@@ -496,42 +566,63 @@ function D:render()
 
   local lines = {} ---@type string[]
   local extmarks = {} ---@type {row:number, col:number, opts:vim.api.keyset.set_extmark}[]
-  local items = {} ---@type table<number, snacks.dashboard.Item>
-  local indent = (" "):rep(math.max(math.floor((self._size.width - self.opts.width) / 2), 0))
+  local max_panes = math.floor((self._size.width + self.opts.pane_gap) / (self.opts.width + self.opts.pane_gap))
+
+  self.items = self:resolve(self.opts.sections)
+  local panes = {} ---@type snacks.dashboard.Item[][]
+  for _, item in ipairs(self.items) do
+    local pane = item.pane or 1
+    pane = math.fmod(pane - 1, max_panes) + 1 -- distribute panes evenly
+    panes[pane] = panes[pane] or {}
+    table.insert(panes[pane], item)
+  end
+  self.panes = math.max(unpack(vim.tbl_keys(panes))) or 1
 
   local autokey = 0
-  for _, item in ipairs(self:resolve(self.opts.sections)) do
-    if item.autokey then
-      item.key = tostring(autokey)
-      autokey = autokey + 1
-    end
-    for l, line in ipairs(self:format(item)) do
-      lines[#lines + 1] = indent
-      if l == 1 then
-        items[#lines] = item
+  self.col = self.opts.col
+    or math.floor(self._size.width - (self.opts.width * #panes + self.opts.pane_gap * (#panes - 1))) / 2
+
+  for p = 1, self.panes do
+    local indent = (" "):rep(p == 1 and self.col or self.opts.pane_gap)
+    local row = 0
+    for _, item in ipairs(panes[p] or {}) do
+      if item.autokey then
+        item.key = tostring(autokey)
+        autokey = autokey + 1
       end
-      ---@cast line snacks.dashboard.Line
-      for _, text in ipairs(line) do
-        lines[#lines] = lines[#lines] .. text[1]
-        if text.hl then
-          table.insert(extmarks, {
-            row = #lines - 1,
-            col = #lines[#lines] - #text[1],
-            opts = { hl_group = self.hls[text.hl] or text.hl, end_col = #lines[#lines] },
-          })
+      for l, line in ipairs(self:format(item)) do
+        row = row + 1
+        if p > 1 and not lines[row] then
+          lines[row] = (" "):rep(self.col + (self.opts.width + self.opts.pane_gap) * (p - 1))
+        else
+          lines[row] = (lines[row] or "") .. indent
+        end
+        if l == 1 then
+          item._ = { pane = p, row = row, col = #lines[row] - 1 }
+        end
+        ---@cast line snacks.dashboard.Line
+        for _, text in ipairs(line) do
+          lines[row] = lines[row] .. text[1]
+          if text.hl then
+            table.insert(extmarks, {
+              row = row - 1,
+              col = #lines[row] - #text[1],
+              opts = { hl_group = self.hls[text.hl] or text.hl, end_col = #lines[row] },
+            })
+          end
         end
       end
-    end
-    if item.key then
-      vim.keymap.set("n", item.key, function()
-        self:action(item.action)
-      end, { buffer = self.buf, nowait = not item.autokey, desc = "Dashboard action" })
+      if item.key then
+        vim.keymap.set("n", item.key, function()
+          self:action(item.action)
+        end, { buffer = self.buf, nowait = not item.autokey, desc = "Dashboard action" })
+      end
     end
   end
 
   -- vertical centering
-  local offset = math.max(math.floor((self._size.height - #lines) / 2), 0)
-  for _ = 1, offset do
+  self.row = self.opts.row or math.max(math.floor((self._size.height - #lines) / 2), 0)
+  for _ = 1, self.row do
     table.insert(lines, 1, "")
   end
 
@@ -540,44 +631,38 @@ function D:render()
   vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, lines)
   vim.bo[self.buf].modifiable = false
 
-  for l, item in pairs(items) do
-    if item.render then
-      item.render(self, { l + offset, #indent })
+  for _, item in ipairs(self.items) do
+    if item._ then
+      item._.row = item._.row + self.row
+      if item.render then
+        item.render(self, { item._.row, item._.col })
+      end
     end
   end
 
   -- extmarks
   vim.api.nvim_buf_clear_namespace(self.buf, M.ns, 0, -1)
   for _, extmark in ipairs(extmarks) do
-    vim.api.nvim_buf_set_extmark(self.buf, M.ns, extmark.row + offset, extmark.col, extmark.opts)
+    vim.api.nvim_buf_set_extmark(self.buf, M.ns, extmark.row + self.row, extmark.col, extmark.opts)
   end
 
   -- actions on enter
   vim.keymap.set("n", "<cr>", function()
-    local section = items[vim.api.nvim_win_get_cursor(self.win)[1] - offset]
-    return section and section.action and self:action(section.action)
+    local item = self:find(vim.api.nvim_win_get_cursor(self.win))
+    return item and item.action and self:action(item.action)
   end, { buffer = self.buf, nowait = true, desc = "Dashboard action" })
 
   -- cursor movement
-  local last = 0
+  local last = { 0, 0 }
   vim.api.nvim_create_autocmd("CursorMoved", {
     group = vim.api.nvim_create_augroup("snacks_dashboard_cursor", { clear = true }),
     buffer = self.buf,
     callback = function()
-      local row, action = vim.api.nvim_win_get_cursor(self.win)[1], nil
-      for l = offset, #lines do
-        if items[l - offset] and items[l - offset].action then
-          if action and row < last and l > row then
-            break
-          end
-          action = l
-          if row >= last and l >= row then
-            break
-          end
-        end
+      local item = self:find(vim.api.nvim_win_get_cursor(self.win), last)
+      if item then
+        last = { item._.row, (lines[item._.row]:find("[%w%d%p]", item._.col + 1) or item._.col + 1) - 1 }
       end
-      last = action or row
-      vim.api.nvim_win_set_cursor(self.win, { last, (lines[last]:find("[%w%d%p]") or 1) - 1 })
+      vim.api.nvim_win_set_cursor(self.win, last)
     end,
   })
   self:fire("RenderPost")
@@ -784,12 +869,13 @@ function M.sections.terminal(opts)
     local width, height = opts.width or self.opts.width, opts.height or 10
 
     local cache_parts = {
-      table.concat(type(cmd) == "table" and cmd or { cmd }, " "):gsub("[^%w%-_%.]", "_"),
+      table.concat(type(cmd) == "table" and cmd or { cmd }, " "),
+      uv.cwd(),
       opts.random and math.random(1, opts.random) or "",
       "txt",
     }
     local cache_dir = vim.fn.stdpath("cache") .. "/snacks"
-    local cache_file = cache_dir .. "/" .. table.concat(cache_parts, ".")
+    local cache_file = cache_dir .. "/" .. table.concat(cache_parts, "."):gsub("[^%w%-_%.]", "_")
     local stat = uv.fs_stat(cache_file)
     local buf = vim.api.nvim_create_buf(false, true)
     local chan = vim.api.nvim_open_term(buf, {})
@@ -818,7 +904,7 @@ function M.sections.terminal(opts)
         end,
         on_exit = function(_, code)
           render(table.concat(output, ""))
-          if code == 0 then
+          if code == 0 and ttl > 0 then
             vim.fn.mkdir(cache_dir, "p")
             local fout = assert(uv.fs_open(cache_file, "w", 438))
             uv.fs_write(fout, table.concat(output, ""))
@@ -830,7 +916,7 @@ function M.sections.terminal(opts)
     return {
       render = function(_, pos)
         local win = vim.api.nvim_open_win(buf, false, {
-          bufpos = pos,
+          bufpos = { pos[1] - 1, pos[2] + 1 },
           col = opts.indent or 0,
           focusable = false,
           height = height,
@@ -855,7 +941,7 @@ function M.sections.terminal(opts)
         vim.api.nvim_create_autocmd("BufWipeout", { buffer = self.buf, callback = close })
         self:on("RenderPre", close)
       end,
-      text = ("\n"):rep(height),
+      text = ("\n"):rep(height - 1),
     }
   end
 end
