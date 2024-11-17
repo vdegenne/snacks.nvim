@@ -7,6 +7,7 @@ local M = setmetatable({}, {
 })
 
 local uv = vim.uv or vim.loop
+math.randomseed(os.time())
 
 ---@class snacks.dashboard.Item
 ---@field indent? number
@@ -207,6 +208,7 @@ function D:init()
     Icon = "Special",
     Key = "Number",
     Normal = "Normal",
+    Terminal = "SnacksDashboardNormal",
     Special = "Special",
     Title = "Title",
   }
@@ -473,7 +475,16 @@ function D:padding(item)
   return item.padding and (type(item.padding) == "table" and item.padding or { item.padding, 0 }) or { 0, 0 }
 end
 
+function D:fire(event)
+  vim.api.nvim_exec_autocmds("User", { pattern = "SnacksDashboard" .. event, modeline = false })
+end
+
+function D:on(event, cb)
+  vim.api.nvim_create_autocmd("User", { pattern = "SnacksDashboard" .. event, callback = cb })
+end
+
 function D:render()
+  self:fire("RenderPre")
   self._size = self:size()
 
   local lines = {} ---@type string[]
@@ -562,6 +573,7 @@ function D:render()
       vim.api.nvim_win_set_cursor(self.win, { last, (lines[last]:find("[%w%d%p]") or 1) - 1 })
     end,
   })
+  self:fire("RenderPost")
 end
 
 --- Check if the dashboard should be opened
@@ -693,6 +705,92 @@ function M.sections.keys()
     return vim.deepcopy(self.opts.preset.keys)
   end
 end
+
+---@param opts {cmd:string|string[], ttl?:number, height?:number, width?:number, random?:number}
+---@return snacks.dashboard.Gen
+function M.sections.terminal(opts)
+  return function(self)
+    local cmd = opts.cmd or 'echo "No `cmd` provided"'
+    local ttl = opts.ttl or 3600
+    local width, height = opts.width or self.opts.width, opts.height or 10
+
+    local cache_parts = {
+      table.concat(type(cmd) == "table" and cmd or { cmd }, " "):gsub("[^%w%-_%.]", "_"),
+      opts.random and math.random(1, opts.random) or "",
+      "txt",
+    }
+    local cache_dir = vim.fn.stdpath("cache") .. "/snacks"
+    local cache_file = cache_dir .. "/" .. table.concat(cache_parts, ".")
+    local stat = uv.fs_stat(cache_file)
+    local buf = vim.api.nvim_create_buf(false, true)
+    local chan = vim.api.nvim_open_term(buf, {})
+
+    local function render(data)
+      local lines = vim.split(data:gsub("\r\n", "\n"), "\n")
+      for l = 1, math.min(height, #lines) do
+        vim.api.nvim_chan_send(chan, (l > 1 and "\n" or "") .. lines[l])
+      end
+      -- HACK: this forces a refresh of the terminal buffer and prevents flickering
+      vim.bo[buf].scrollback = 1
+    end
+
+    if stat and stat.type == "file" and stat.size > 0 and os.time() - stat.mtime.sec < ttl then
+      local fin = assert(uv.fs_open(cache_file, "r", 438))
+      render(uv.fs_read(fin, stat.size, 0) or "")
+      uv.fs_close(fin)
+    else
+      local output = {}
+      vim.fn.jobstart(cmd, {
+        height = height,
+        width = width,
+        pty = true,
+        on_stdout = function(_, data)
+          table.insert(output, table.concat(data, "\n"))
+        end,
+        on_exit = function(_, code)
+          render(table.concat(output, ""))
+          if code == 0 then
+            vim.fn.mkdir(cache_dir, "p")
+            local fout = assert(uv.fs_open(cache_file, "w", 438))
+            uv.fs_write(fout, table.concat(output, ""))
+            uv.fs_close(fout)
+          end
+        end,
+      })
+    end
+    return {
+      render = function(_, pos)
+        local win = vim.api.nvim_open_win(buf, false, {
+          bufpos = pos,
+          col = 0,
+          focusable = false,
+          height = height,
+          noautocmd = true,
+          relative = "win",
+          row = 0,
+          zindex = Snacks.config.styles.dashboard.zindex + 1,
+          style = "minimal",
+          width = width,
+          win = self.win,
+        })
+        vim.api.nvim_set_option_value(
+          "winhighlight",
+          "NormalFloat:SnacksDashboardTerminal",
+          { scope = "local", win = win }
+        )
+        local close = vim.schedule_wrap(function()
+          pcall(vim.api.nvim_win_close, win, true)
+          pcall(vim.api.nvim_buf_delete, buf, { force = true })
+          return true
+        end)
+        vim.api.nvim_create_autocmd("BufWipeout", { buffer = self.buf, callback = close })
+        self:on("RenderPre", close)
+      end,
+      text = ("\n"):rep(height),
+    }
+  end
+end
+
 --- Add the startup section
 ---@return snacks.dashboard.Section?
 function M.sections.startup()
