@@ -8,20 +8,19 @@ local M = setmetatable({}, {
 
 local uv = vim.uv or vim.loop
 
----@alias snacks.dashboard.Format.ctx {width?:number}
-
 ---@class snacks.dashboard.Item
 ---@field indent? number
 ---@field align? "left" | "center" | "right"
----@field spacing? number
+---@field gap? number the number of empty lines between child items
+---@field padding? number | {[1]:number, [2]:number} bottom or {bottom, top} padding
 --- The action to run when the section is selected or the key is pressed.
 --- * if it's a string starting with `:`, it will be run as a command
 --- * if it's a string, it will be executed as a keymap
 --- * if it's a function, it will be called
----@field action? fun()|string
+---@field action? snacks.dashboard.Action
 ---@field enabled? boolean|fun(opts:snacks.dashboard.Opts):boolean if false, the section will be disabled
 ---@field section? string the name of a section to include. See `Snacks.dashboard.sections`
----@field opts? table options to pass to the section
+---@field [string] any section options
 ---@field key? string shortcut key
 ---@field autokey? boolean automatically assign a numerical key
 ---@field label? string
@@ -33,9 +32,10 @@ local uv = vim.uv or vim.loop
 ---@field title? string
 ---@field text? string|snacks.dashboard.Text[]
 
----@alias snacks.dashboard.Gen fun(opts:snacks.dashboard.Opts):(snacks.dashboard.Item|snacks.dashboard.Item[])
----@class snacks.dashboard.Section: snacks.dashboard.Item
----@field [number] snacks.dashboard.Section|snacks.dashboard.Gen
+---@alias snacks.dashboard.Format.ctx {width?:number}
+---@alias snacks.dashboard.Action string|fun(self:snacks.dashboard.Class)
+---@alias snacks.dashboard.Gen fun(self:snacks.dashboard.Class):snacks.dashboard.Section?
+---@alias snacks.dashboard.Section snacks.dashboard.Item|snacks.dashboard.Gen|snacks.dashboard.Section[]
 
 ---@class snacks.dashboard.Text
 ---@field [1] string the text
@@ -57,13 +57,33 @@ local uv = vim.uv or vim.loop
 ---@field sections snacks.dashboard.Section
 ---@field formats table<string, snacks.dashboard.Text|fun(item:snacks.dashboard.Item, ctx:snacks.dashboard.Format.ctx):snacks.dashboard.Text>
 local defaults = {
-  width = 56,
+  width = 60,
   -- These settings are only relevant if you don't configure your own sections
   preset = {
     -- Defaults to a picker that supports `fzf-lua`, `telescope.nvim` and `mini.pick`
     ---@type fun(cmd:string, opts:table)|nil
     pick = nil,
-    recent_files = true, -- if true, show recent files
+    -- stylua: ignore
+    ---@type snacks.dashboard.Item[]
+    keys = {
+      { icon = " ", key = "f", desc = "Find File", action = ":lua Snacks.dashboard.pick('files')" },
+      { icon = " ", key = "n", desc = "New File", action = ":ene | startinsert" },
+      { icon = " ", key = "g", desc = "Find Text", action = ":lua Snacks.dashboard.pick('live_grep')" },
+      { icon = " ", key = "r", desc = "Recent Files", action = ":lua Snacks.dashboard.pick('oldfiles')" },
+      { icon = " ", key = "c", desc = "Config", action = ":lua Snacks.dashboard.pick('files', {cwd = vim.fn.stdpath('config')})" },
+      { icon = " ", key = "s", desc = "Restore Session", section = "session" },
+      { icon = "󰒲 ", key = "l", desc = "Lazy", action = ":Lazy", enabled = package.loaded.lazy },
+      { icon = " ", key = "q", desc = "Quit", action = ":qa" },
+    },
+    header = vim.trim(
+      [[
+███╗   ██╗███████╗ ██████╗ ██╗   ██╗██╗███╗   ███╗
+████╗  ██║██╔════╝██╔═══██╗██║   ██║██║████╗ ████║
+██╔██╗ ██║█████╗  ██║   ██║██║   ██║██║██╔████╔██║
+██║╚██╗██║██╔══╝  ██║   ██║╚██╗ ██╔╝██║██║╚██╔╝██║
+██║ ╚████║███████╗╚██████╔╝ ╚████╔╝ ██║██║ ╚═╝ ██║
+╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝]]
+    ),
   },
   formats = {
     icon = { "%s", width = 2 },
@@ -74,39 +94,48 @@ local defaults = {
       return { ctx.width and #fname > ctx.width and vim.fn.pathshorten(fname) or fname, hl = "file" }
     end,
   },
-  -- stylua: ignore
   sections = {
+    { section = "header", enabled = false },
     {
-      header = [[
-███╗   ██╗███████╗ ██████╗ ██╗   ██╗██╗███╗   ███╗
-████╗  ██║██╔════╝██╔═══██╗██║   ██║██║████╗ ████║
-██╔██╗ ██║█████╗  ██║   ██║██║   ██║██║██╔████╔██║
-██║╚██╗██║██╔══╝  ██║   ██║╚██╗ ██╔╝██║██║╚██╔╝██║
-██║ ╚████║███████╗╚██████╔╝ ╚████╔╝ ██║██║ ╚═╝ ██║
-╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝
-          ]],
+      section = "terminal",
+      -- cmd = "pokemon-colorscripts -r --no-title; sleep .1",
+      -- cmd = "neofetch",
+      cmd = "chafa ~/.config/wall.png --format symbols --symbols vhalf --size 60x18 --stretch",
+      height = 18,
+      padding = 1,
     },
-    { title = "Keymaps", icon = " " },
     {
+      section = "keys",
+      gap = 1,
+      padding = 1,
+    },
+    {
+      title = "Keymaps",
+      enabled = false,
+      icon = " ",
+      padding = 1,
       indent = 2,
-      -- spacing = 1,
-      { icon = " ", key = "f", desc = "Find File", action = ":lua Snacks.dashboard.pick('files')" },
-      { icon = " ", key = "n", desc = "New File", action = ":ene | startinsert" },
-      { icon = " ", key = "g", desc = "Find Text", action = ":lua Snacks.dashboard.pick('live_grep')" },
-      { icon = " ", key = "r", desc = "Recent Files", action = ":lua Snacks.dashboard.pick('oldfiles')" },
-      { icon = " ", key = "c", desc = "Config", action = ":lua Snacks.dashboard.pick('files', {cwd = vim.fn.stdpath('config')})" },
-      { icon = " ", key = "s", desc = "Restore Session", section = "session" },
-      { icon = "󰒲 ", key = "l", desc = "Lazy", action = ":Lazy", enabled = package.loaded.lazy },
-      { icon = " ", key = "q", desc = "Quit", action = ":qa" },
+      section = "keys",
     },
-    {},
-    { title = "Recent Files", icon = " " },
     {
+      enabled = false,
+      title = "Recent Files",
+      icon = " ",
       section = "recent_files",
-      opts = { limit = 5, cwd = false },
+      limit = 5,
+      cwd = true,
       indent = 2,
+      padding = 1,
     },
-    {},
+    {
+      enabled = false,
+      title = "Projects",
+      icon = " ",
+      indent = 2,
+      section = "projects",
+      limit = 10,
+      padding = 1,
+    },
     { section = "startup" },
   },
 }
@@ -225,7 +254,7 @@ function D:is_float()
   return vim.api.nvim_win_get_config(self.win).relative ~= ""
 end
 
----@param action string|fun()
+---@param action snacks.dashboard.Action
 function D:action(action)
   -- close the window before running the action if it's floating
   if self:is_float() then
@@ -241,7 +270,7 @@ function D:action(action)
         return vim.api.nvim_feedkeys(keys, "tm", true)
       end
     end
-    action()
+    action(self)
   end)
 end
 
@@ -351,8 +380,9 @@ function D:format(item)
   local right = block and { width = 0 } or find({ "label", "key" }, { align = "right", padding = 1 })
   local center = block or find({ "file", "desc", "header", "footer", "title" }, { flex = true })
 
+  local padding = self:padding(item)
   local ret = { width = self.opts.width } ---@type snacks.dashboard.Block
-  for l = 1, math.max(#left, #center, #right, 1) + (item.spacing or 0) do
+  for l = 1, math.max(#left, #center, #right, 1) + padding[1] do
     ret[l] = { width = self.opts.width }
     left[l] = left[l] or { width = 0 }
     right[l] = right[l] or { width = 0 }
@@ -367,6 +397,9 @@ function D:format(item)
     vim.list_extend(ret[l], center[l])
     vim.list_extend(ret[l], right[l])
   end
+  for _ = 1, padding[2] do
+    table.insert(ret, 1, { width = self.opts.width })
+  end
   return ret
 end
 
@@ -379,29 +412,55 @@ function D:enabled(item)
   return e == nil or e
 end
 
----@param item snacks.dashboard.Section|snacks.dashboard.Gen|snacks.dashboard.Item[]
+---@param item snacks.dashboard.Section?
 ---@param results? snacks.dashboard.Item[]
 ---@param parent? snacks.dashboard.Item
 function D:resolve(item, results, parent)
   results = results or {}
-  if type(item) == "table" then
-    setmetatable(item, nil)
+  if not item then
+    return results
   end
+  if type(item) == "table" and parent then
+    for _, prop in ipairs({ "indent", "align" }) do
+      item[prop] = item[prop] or parent[prop]
+    end
+  end
+
   if type(item) == "function" then
-    return self:resolve(item(self.opts), results, parent)
+    return self:resolve(item(self), results, parent)
   elseif type(item) == "table" and self:enabled(item) then
-    if item.section then
-      setmetatable(item, { __index = parent })
-      local items = M.sections[item.section](item.opts) ---@type snacks.dashboard.Item[]
+    if not item.section and not item[1] then
+      table.insert(results, item)
+      return results
+    end
+    local first_child = #results + 1
+    if item.title then -- always add the title
+      table.insert(results, { title = item.title, icon = item.icon })
+    end
+    if item.section then -- add section items
+      local start = uv.hrtime()
+      local items = M.sections[item.section](item) ---@type snacks.dashboard.Section?
       self:resolve(items, results, item)
-    elseif item[1] then
-      setmetatable(item, { __index = parent })
+      Snacks.notify("Resolved " .. item.section .. " in **" .. (uv.hrtime() - start) / 1e6 .. "ms**")
+    end
+    if item[1] then -- add child items
       for _, child in ipairs(item) do
         self:resolve(child, results, item)
       end
-    else
-      setmetatable(item, { __index = parent })
-      table.insert(results, item)
+    end
+    if item.gap then -- add padding between child items
+      for i = first_child, #results - 1 do
+        results[i].padding = item.gap
+      end
+    end
+    if item.padding then -- add padding to the first and last child items
+      local padding = self:padding(item)
+      if padding[2] > 0 and results[first_child] then
+        results[first_child].padding = { 0, padding[2] }
+      end
+      if padding[1] > 0 and results[#results] then
+        results[#results].padding = { padding[1], 0 }
+      end
     end
   elseif type(item) ~= "table" then
     Snacks.notify.error("Invalid item:\n```lua\n" .. vim.inspect(item) .. "\n```", { title = "Dashboard" })
@@ -409,29 +468,39 @@ function D:resolve(item, results, parent)
   return results
 end
 
+---@return {[1]: number, [2]: number}
+function D:padding(item)
+  return item.padding and (type(item.padding) == "table" and item.padding or { item.padding, 0 }) or { 0, 0 }
+end
+
 function D:render()
   self._size = self:size()
 
   local lines = {} ---@type string[]
-  local hls = {} ---@type {row:number, col:number, hl:string, len:number}[]
+  local extmarks = {} ---@type {row:number, col:number, opts:vim.api.keyset.set_extmark}[]
   local items = {} ---@type table<number, snacks.dashboard.Item>
   local indent = (" "):rep(math.max(math.floor((self._size.width - self.opts.width) / 2), 0))
 
-  local autokeys = 0
+  local autokey = 0
   for _, item in ipairs(self:resolve(self.opts.sections)) do
     if item.autokey then
-      item.key = tostring(autokeys)
-      autokeys = autokeys + 1
+      item.key = tostring(autokey)
+      autokey = autokey + 1
     end
-    for _, line in ipairs(self:format(item)) do
+    for l, line in ipairs(self:format(item)) do
       lines[#lines + 1] = indent
-      items[#lines] = item
+      if l == 1 then
+        items[#lines] = item
+      end
       ---@cast line snacks.dashboard.Line
       for _, text in ipairs(line) do
         lines[#lines] = lines[#lines] .. text[1]
         if text.hl then
-          local hl = self.hls[text.hl] or text.hl
-          table.insert(hls, { row = #lines - 1, col = #lines[#lines] - #text[1], hl = hl, len = #text[1] })
+          table.insert(extmarks, {
+            row = #lines - 1,
+            col = #lines[#lines] - #text[1],
+            opts = { hl_group = self.hls[text.hl] or text.hl, end_col = #lines[#lines] },
+          })
         end
       end
     end
@@ -453,11 +522,16 @@ function D:render()
   vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, lines)
   vim.bo[self.buf].modifiable = false
 
-  -- highlights
+  for l, item in pairs(items) do
+    if item.render then
+      item.render(self, { l + offset, #indent })
+    end
+  end
+
+  -- extmarks
   vim.api.nvim_buf_clear_namespace(self.buf, M.ns, 0, -1)
-  for _, hl in ipairs(hls) do
-    local row = hl.row + offset
-    vim.api.nvim_buf_set_extmark(self.buf, M.ns, row, hl.col, { end_col = hl.col + hl.len, hl_group = hl.hl })
+  for _, extmark in ipairs(extmarks) do
+    vim.api.nvim_buf_set_extmark(self.buf, M.ns, extmark.row + offset, extmark.col, extmark.opts)
   end
 
   -- actions on enter
@@ -474,7 +548,7 @@ function D:render()
     callback = function()
       local row, action = vim.api.nvim_win_get_cursor(self.win)[1], nil
       for l = offset, #lines do
-        if items[l - offset] and items[l - offset].action and not lines[l]:match("^%s*$") then
+        if items[l - offset] and items[l - offset].action then
           if action and row < last and l > row then
             break
           end
@@ -539,8 +613,9 @@ function M.icon(name, cat)
 end
 
 -- Used by the default preset to pick something
----@param cmd string
+---@param cmd? string
 function M.pick(cmd, opts)
+  cmd = cmd or "files"
   local config = Snacks.config.get("dashboard", defaults, opts)
   -- stylua: ignore
   local try = {
@@ -567,7 +642,9 @@ end
 M.sections = {}
 
 -- Adds a section to restore the session if any of the supported plugins are installed.
-function M.sections.session()
+---@param item? snacks.dashboard.Item
+---@return snacks.dashboard.Item?
+function M.sections.session(item)
   local plugins = {
     ["persistence.nvim"] = ":lua require('persistence').load()",
     ["persisted.nvim"] = ":SessionLoad",
@@ -576,7 +653,10 @@ function M.sections.session()
   }
   for name, action in pairs(plugins) do
     if M.have_plugin(name) then
-      return { action = action }
+      return setmetatable({ -- add the action and disable the section
+        action = action,
+        section = false,
+      }, { __index = item })
     end
   end
 end
