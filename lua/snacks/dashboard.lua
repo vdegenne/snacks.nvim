@@ -775,7 +775,7 @@ function M.sections.keys()
   end
 end
 
----@param opts {cmd:string|string[], ttl?:number, height?:number, width?:number, random?:number}
+---@param opts {cmd:string|string[], ttl?:number, height?:number, width?:number, random?:number}|snacks.dashboard.Item
 ---@return snacks.dashboard.Gen
 function M.sections.terminal(opts)
   return function(self)
@@ -831,7 +831,7 @@ function M.sections.terminal(opts)
       render = function(_, pos)
         local win = vim.api.nvim_open_win(buf, false, {
           bufpos = pos,
-          col = 0,
+          col = opts.indent or 0,
           focusable = false,
           height = height,
           noautocmd = true,
