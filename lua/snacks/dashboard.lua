@@ -535,7 +535,6 @@ function D:find(pos, from)
   local pane = math.floor((char - self.col) / (self.opts.width + self.opts.pane_gap)) + 1
   pane = math.max(1, math.min(pane, self.panes))
   if pos[1] == from[1] then
-    dd({ pos = pos, from = from, pane = pane })
     if pos[2] == from[2] - 1 then
       pane = pane - 1
     elseif pos[2] == from[2] + 1 then
@@ -881,7 +880,7 @@ function M.sections.terminal(opts)
     local chan = vim.api.nvim_open_term(buf, {})
 
     local function render(data)
-      local lines = vim.split(data:gsub("\r\n", "\n"), "\n")
+      local lines = vim.split(data, "\n")
       for l = 1, math.min(height, #lines) do
         vim.api.nvim_chan_send(chan, (l > 1 and "\n" or "") .. lines[l])
       end
