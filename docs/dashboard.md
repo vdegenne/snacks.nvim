@@ -90,38 +90,14 @@ In the example below, both sections are equivalent.
 ---@field sections snacks.dashboard.Section
 ---@field formats table<string, snacks.dashboard.Text|fun(item:snacks.dashboard.Item, ctx:snacks.dashboard.Format.ctx):snacks.dashboard.Text>
 {
-  width = 56,
+  width = 60,
   -- These settings are only relevant if you don't configure your own sections
   preset = {
     -- Defaults to a picker that supports `fzf-lua`, `telescope.nvim` and `mini.pick`
     ---@type fun(cmd:string, opts:table)|nil
     pick = nil,
-    recent_files = true, -- if true, show recent files
-  },
-  formats = {
-    icon = { "%s", width = 2 },
-    footer = { "%s", align = "center" },
-    header = { "%s", align = "center" },
-    file = function(item, ctx)
-      local fname = vim.fn.fnamemodify(item.file, ":p:~:.")
-      return { ctx.width and #fname > ctx.width and vim.fn.pathshorten(fname) or fname, hl = "file" }
-    end,
-  },
-  sections = {
-    {
-      header = [[
-███╗   ██╗███████╗ ██████╗ ██╗   ██╗██╗███╗   ███╗
-████╗  ██║██╔════╝██╔═══██╗██║   ██║██║████╗ ████║
-██╔██╗ ██║█████╗  ██║   ██║██║   ██║██║██╔████╔██║
-██║╚██╗██║██╔══╝  ██║   ██║╚██╗ ██╔╝██║██║╚██╔╝██║
-██║ ╚████║███████╗╚██████╔╝ ╚████╔╝ ██║██║ ╚═╝ ██║
-╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝
-          ]],
-    },
-    { title = "Keymaps", icon = " " },
-    {
-      indent = 2,
-      -- spacing = 1,
+    ---@type snacks.dashboard.Item[]
+    keys = {
       { icon = " ", key = "f", desc = "Find File", action = ":lua Snacks.dashboard.pick('files')" },
       { icon = " ", key = "n", desc = "New File", action = ":ene | startinsert" },
       { icon = " ", key = "g", desc = "Find Text", action = ":lua Snacks.dashboard.pick('live_grep')" },
@@ -131,16 +107,74 @@ In the example below, both sections are equivalent.
       { icon = "󰒲 ", key = "l", desc = "Lazy", action = ":Lazy", enabled = package.loaded.lazy },
       { icon = " ", key = "q", desc = "Quit", action = ":qa" },
     },
-    {},
-    { title = "Recent Files", icon = " " },
+    header = vim.trim(
+      [[
+███╗   ██╗███████╗ ██████╗ ██╗   ██╗██╗███╗   ███╗
+████╗  ██║██╔════╝██╔═══██╗██║   ██║██║████╗ ████║
+██╔██╗ ██║█████╗  ██║   ██║██║   ██║██║██╔████╔██║
+██║╚██╗██║██╔══╝  ██║   ██║╚██╗ ██╔╝██║██║╚██╔╝██║
+██║ ╚████║███████╗╚██████╔╝ ╚████╔╝ ██║██║ ╚═╝ ██║
+╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝]]
+    ),
+  },
+  formats = {
+    icon = { "%s", width = 2 },
+    footer = { "%s", align = "center" },
+    header = { "%s", align = "center" },
+    file = function(item, ctx)
+      local fname = vim.fn.fnamemodify(item.file, ":~")
+      return { ctx.width and #fname > ctx.width and vim.fn.pathshorten(fname) or fname, hl = "file" }
+    end,
+  },
+  sections = {
+    { section = "header", enabled = true },
     {
-      section = "recent_files",
-      opts = { limit = 5, cwd = false },
-      indent = 2,
+      section = "terminal",
+      cmd = "pokemon-colorscripts -r --no-title; sleep .1",
+      -- cmd = "colorscript -r",
+      -- cmd = "neofetch",
+      cmd = "chafa ~/.config/wall.png --format symbols --symbols vhalf --size 60x18 --stretch",
+      cmd = "colorscript -e square",
+      height = 5,
+      padding = 1,
+      -- random = 3,
     },
-    {},
+    {
+      section = "keys",
+      gap = 1,
+      padding = 1,
+      enabled = true,
+    },
+    {
+      title = "Keymaps",
+      enabled = false,
+      icon = " ",
+      padding = 1,
+      indent = 2,
+      section = "keys",
+    },
+    {
+      enabled = false,
+      title = "Recent Files",
+      icon = " ",
+      section = "recent_files",
+      limit = 5,
+      cwd = true,
+      indent = 2,
+      padding = 1,
+    },
+    {
+      enabled = true,
+      title = "Projects",
+      icon = " ",
+      indent = 2,
+      section = "projects",
+      limit = 10,
+      padding = 1,
+    },
     { section = "startup" },
   },
+  debug = true,
 }
 ```
 
@@ -174,7 +208,6 @@ The other options are used with `:lua Snacks.dashboard()`
     signcolumn = "no",
     spell = false,
     statuscolumn = "",
-    statusline = "",
     winbar = "",
     winhighlight = "Normal:SnacksDashboardNormal,NormalFloat:SnacksDashboardNormal",
     wrap = false,
@@ -185,23 +218,21 @@ The other options are used with `:lua Snacks.dashboard()`
 ## 📚 Types
 
 ```lua
----@alias snacks.dashboard.Format.ctx {width?:number}
-```
-
-```lua
 ---@class snacks.dashboard.Item
 ---@field indent? number
 ---@field align? "left" | "center" | "right"
----@field spacing? number
+---@field gap? number the number of empty lines between child items
+---@field padding? number | {[1]:number, [2]:number} bottom or {bottom, top} padding
 --- The action to run when the section is selected or the key is pressed.
 --- * if it's a string starting with `:`, it will be run as a command
 --- * if it's a string, it will be executed as a keymap
 --- * if it's a function, it will be called
----@field action? fun()|string
+---@field action? snacks.dashboard.Action
 ---@field enabled? boolean|fun(opts:snacks.dashboard.Opts):boolean if false, the section will be disabled
 ---@field section? string the name of a section to include. See `Snacks.dashboard.sections`
----@field opts? table options to pass to the section
+---@field [string] any section options
 ---@field key? string shortcut key
+---@field autokey? boolean automatically assign a numerical key
 ---@field label? string
 ---@field desc? string
 ---@field file? string
@@ -213,9 +244,10 @@ The other options are used with `:lua Snacks.dashboard()`
 ```
 
 ```lua
----@alias snacks.dashboard.Gen fun(opts:snacks.dashboard.Opts):(snacks.dashboard.Item|snacks.dashboard.Item[])
----@class snacks.dashboard.Section: snacks.dashboard.Item
----@field [number] snacks.dashboard.Section|snacks.dashboard.Gen
+---@alias snacks.dashboard.Format.ctx {width?:number}
+---@alias snacks.dashboard.Action string|fun(self:snacks.dashboard.Class)
+---@alias snacks.dashboard.Gen fun(self:snacks.dashboard.Class):snacks.dashboard.Section?
+---@alias snacks.dashboard.Section snacks.dashboard.Item|snacks.dashboard.Gen|snacks.dashboard.Section[]
 ```
 
 ```lua
@@ -241,16 +273,6 @@ The other options are used with `:lua Snacks.dashboard()`
 Snacks.dashboard()
 ```
 
-### `Snacks.dashboard.file_icon()`
-
-Get an icon
-
-```lua
----@param name string
----@return snacks.dashboard.Text
-Snacks.dashboard.file_icon(name)
-```
-
 ### `Snacks.dashboard.have_plugin()`
 
 Checks if the plugin is installed.
@@ -259,6 +281,17 @@ Only works with [lazy.nvim](https://github.com/folke/lazy.nvim)
 ```lua
 ---@param name string
 Snacks.dashboard.have_plugin(name)
+```
+
+### `Snacks.dashboard.icon()`
+
+Get an icon
+
+```lua
+---@param name string
+---@param cat? string
+---@return snacks.dashboard.Text
+Snacks.dashboard.icon(name, cat)
 ```
 
 ### `Snacks.dashboard.open()`
@@ -274,16 +307,45 @@ Snacks.dashboard.open(opts)
 Used by the default preset to pick something
 
 ```lua
----@param cmd string
+---@param cmd? string
 Snacks.dashboard.pick(cmd, opts)
+```
+
+### `Snacks.dashboard.sections.header()`
+
+```lua
+---@return snacks.dashboard.Gen
+Snacks.dashboard.sections.header()
+```
+
+### `Snacks.dashboard.sections.keys()`
+
+```lua
+---@return snacks.dashboard.Gen
+Snacks.dashboard.sections.keys()
+```
+
+### `Snacks.dashboard.sections.projects()`
+
+Get the most recent projects based on git roots of recent files.
+The default action will change the directory to the project root,
+try to restore the session and open the picker if the session is not restored.
+You can customize the behavior by providing a custom action.
+Use `opts.dirs` to provide a list of directories to use instead of the git roots.
+
+```lua
+---@param opts? {limit?:number, dirs?:(string[]|fun():string[]), pick?:boolean, session?:boolean, action?:fun(dir)}
+Snacks.dashboard.sections.projects(opts)
 ```
 
 ### `Snacks.dashboard.sections.recent_files()`
 
-Get the most recent files
+Get the most recent files, optionally filtered by the
+current working directory or a custom directory.
 
 ```lua
----@param opts? {limit?:number, cwd?:boolean}
+---@param opts? {limit?:number, cwd?:string|boolean}
+---@return snacks.dashboard.Gen
 Snacks.dashboard.sections.recent_files(opts)
 ```
 
@@ -292,7 +354,9 @@ Snacks.dashboard.sections.recent_files(opts)
 Adds a section to restore the session if any of the supported plugins are installed.
 
 ```lua
-Snacks.dashboard.sections.session()
+---@param item? snacks.dashboard.Item
+---@return snacks.dashboard.Item?
+Snacks.dashboard.sections.session(item)
 ```
 
 ### `Snacks.dashboard.sections.startup()`
@@ -302,6 +366,14 @@ Add the startup section
 ```lua
 ---@return snacks.dashboard.Section?
 Snacks.dashboard.sections.startup()
+```
+
+### `Snacks.dashboard.sections.terminal()`
+
+```lua
+---@param opts {cmd:string|string[], ttl?:number, height?:number, width?:number, random?:number}
+---@return snacks.dashboard.Gen
+Snacks.dashboard.sections.terminal(opts)
 ```
 
 ### `Snacks.dashboard.setup()`
