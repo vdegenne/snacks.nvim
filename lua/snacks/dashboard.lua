@@ -175,7 +175,7 @@ local defaults = {
     },
     { section = "startup" },
   },
-  debug = true,
+  debug = false,
 }
 
 -- The default style for the dashboard.
