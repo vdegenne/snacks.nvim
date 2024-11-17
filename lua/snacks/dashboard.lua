@@ -96,19 +96,23 @@ local defaults = {
     end,
   },
   sections = {
-    { section = "header", enabled = false },
+    { section = "header", enabled = true },
     {
       section = "terminal",
-      -- cmd = "pokemon-colorscripts -r --no-title; sleep .1",
+      cmd = "pokemon-colorscripts -r --no-title; sleep .1",
+      -- cmd = "colorscript -r",
       -- cmd = "neofetch",
       cmd = "chafa ~/.config/wall.png --format symbols --symbols vhalf --size 60x18 --stretch",
-      height = 18,
+      cmd = "colorscript -e square",
+      height = 5,
       padding = 1,
+      -- random = 3,
     },
     {
       section = "keys",
       gap = 1,
       padding = 1,
+      enabled = true,
     },
     {
       title = "Keymaps",
@@ -129,7 +133,7 @@ local defaults = {
       padding = 1,
     },
     {
-      enabled = false,
+      enabled = true,
       title = "Projects",
       icon = " ",
       indent = 2,
