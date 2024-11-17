@@ -677,17 +677,57 @@ end
 ---@param opts? {limit?:number, cwd?:string|boolean}
 function M.sections.recent_files(opts)
   opts = opts or {}
+--- Get the most recent projects based on git roots of recent files.
+--- The default action will change the directory to the project root,
+--- try to restore the session and open the picker if the session is not restored.
+--- You can customize the behavior by providing a custom action.
+--- Use `opts.dirs` to provide a list of directories to use instead of the git roots.
+---@param opts? {limit?:number, dirs?:(string[]|fun():string[]), pick?:boolean, session?:boolean, action?:fun(dir)}
+function M.sections.projects(opts)
+  opts = vim.tbl_extend("force", { pick = true, session = true }, opts or {})
   local limit = opts.limit or 5
-  local root = opts.cwd and vim.fs.normalize(type(opts.cwd) == "boolean" and vim.fn.getcwd() or opts.cwd)
-  local ret = {} ---@type snacks.dashboard.Section
-  for _, file in ipairs(vim.v.oldfiles) do
-    file = vim.fs.normalize(file, { _fast = true, expand_env = false })
-    if file:sub(1, #root) == root and uv.fs_stat(file) then
-      ret[#ret + 1] = { file = file, icon = M.icon(file), action = ":e " .. file, autokey = true }
-      if #ret >= limit then
-        break
+  local dirs = opts.dirs or {}
+  dirs = type(dirs) == "function" and dirs() or dirs --[[ @as string[] ]]
+  dirs = vim.list_slice(dirs, 1, limit)
+
+  if not opts.dirs then
+    for _, file in ipairs(vim.v.oldfiles) do
+      file = vim.fs.normalize(file, { _fast = true, expand_env = false })
+      local dir = uv.fs_stat(file) and Snacks.git.get_root(file)
+      if dir and not vim.tbl_contains(dirs, dir) then
+        table.insert(dirs, dir)
+        if #dirs >= limit then
+          break
+        end
       end
     end
+  end
+
+  local ret = {} ---@type snacks.dashboard.Item[]
+  for _, dir in ipairs(dirs) do
+    ret[#ret + 1] = {
+      file = dir,
+      icon = M.icon(dir, "directory"),
+      action = function(self)
+        if opts.action then
+          return opts.action(dir)
+        end
+        -- stylua: ignore
+        if opts.session then
+          local session_loaded = false
+          vim.api.nvim_create_autocmd("SessionLoadPost", { once = true, callback = function() session_loaded = true end })
+          vim.defer_fn(function() if not session_loaded and opts.pick then M.pick() end end, 100)
+        end
+        vim.fn.chdir(dir)
+        local session = M.sections.session()
+        if opts.session and session then
+          self:action(session.action)
+        elseif opts.pick then
+          M.pick()
+        end
+      end,
+      autokey = true,
+    }
   end
   return ret
 end
