@@ -683,10 +683,29 @@ function M.sections.session(item)
   end
 end
 
---- Get the most recent files
+--- Get the most recent files, optionally filtered by the
+--- current working directory or a custom directory.
 ---@param opts? {limit?:number, cwd?:string|boolean}
+---@return snacks.dashboard.Gen
 function M.sections.recent_files(opts)
-  opts = opts or {}
+  return function()
+    opts = opts or {}
+    local limit = opts.limit or 5
+    local root = opts.cwd and vim.fs.normalize(opts.cwd == true and vim.fn.getcwd() or opts.cwd) or ""
+    local ret = {} ---@type snacks.dashboard.Section
+    for _, file in ipairs(vim.v.oldfiles) do
+      file = vim.fs.normalize(file, { _fast = true, expand_env = false })
+      if file:sub(1, #root) == root and uv.fs_stat(file) then
+        ret[#ret + 1] = { file = file, icon = M.icon(file), action = ":e " .. file, autokey = true }
+        if #ret >= limit then
+          break
+        end
+      end
+    end
+    return ret
+  end
+end
+
 --- Get the most recent projects based on git roots of recent files.
 --- The default action will change the directory to the project root,
 --- try to restore the session and open the picker if the session is not restored.
