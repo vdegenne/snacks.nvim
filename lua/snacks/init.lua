@@ -114,6 +114,7 @@ function M.setup(opts)
     vim.api.nvim_create_autocmd(event, {
       group = group,
       once = true,
+      nested = true,
       callback = function()
         for _, snack in ipairs(snacks) do
           if M.config[snack].enabled then
