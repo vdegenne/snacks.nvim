@@ -83,6 +83,142 @@ In the example below, both sections are equivalent.
 
 <!-- docgen -->
 
+## 🚀 Examples
+
+### `advanced`
+
+A more advanced example using multiple panes
+
+```lua
+{
+  sections = {
+    { section = "header" },
+    {
+      pane = 2,
+      section = "terminal",
+      cmd = "colorscript -e square",
+      height = 5,
+      padding = 1,
+    },
+    { section = "keys", gap = 1, padding = 1 },
+    { pane = 2, icon = " ", title = "Recent Files", section = "recent_files", indent = 2, padding = 1 },
+    { pane = 2, icon = " ", title = "Projects", section = "projects", indent = 2, padding = 1 },
+    {
+      pane = 2,
+      icon = " ",
+      title = "Git Status",
+      section = "terminal",
+      enabled = vim.fn.isdirectory(".git") == 1,
+      cmd = "hub status --short --branch --renames",
+      height = 5,
+      padding = 1,
+      ttl = 5 * 60,
+      indent = 3,
+    },
+    { section = "startup" },
+  },
+}
+```
+
+### `chafa`
+
+An example using the `chafa` command to display an image
+
+```lua
+{
+  sections = {
+    {
+      section = "terminal",
+      cmd = "chafa ~/.config/wall.png --format symbols --symbols vhalf --size 60x17 --stretch; sleep .1",
+      height = 17,
+      padding = 1,
+    },
+    {
+      pane = 2,
+      { section = "keys", gap = 1, padding = 1 },
+      { section = "startup" },
+    },
+  },
+}
+```
+
+### `doom`
+
+Similar to the Emacs Doom dashboard
+
+```lua
+{
+  sections = {
+    { section = "header" },
+    { section = "keys", gap = 1, padding = 1 },
+    { section = "startup" },
+  },
+}
+```
+
+### `files`
+
+A simple example with a header, keys, recent files, and projects
+
+```lua
+{
+  sections = {
+    { section = "header" },
+    { section = "keys", gap = 1 },
+    { icon = " ", title = "Recent Files", section = "recent_files", indent = 2, padding = { 2, 2 } },
+    { icon = " ", title = "Projects", section = "projects", indent = 2, padding = 2 },
+    { section = "startup" },
+  },
+}
+```
+
+### `pokemon`
+
+Pokemons, because why not?
+
+```lua
+{
+  sections = {
+    { section = "header" },
+    { section = "keys", gap = 1, padding = 1 },
+    { section = "startup" },
+    {
+      section = "terminal",
+      cmd = "pokemon-colorscripts -r --no-title; sleep .1",
+      random = 10,
+      pane = 2,
+      indent = 4,
+      height = 30,
+    },
+  },
+}
+```
+
+### `startify`
+
+Similar to the Vim Startify dashboard
+
+```lua
+{
+  formats = {
+    key = function(item)
+      return { { "[", hl = "special" }, { item.key, hl = "key" }, { "]", hl = "special" } }
+    end,
+  },
+  sections = {
+    { section = "terminal", cmd = "fortune -s | cowsay", hl = "header", padding = 1, indent = 8 },
+    { title = "MRU", padding = 1 },
+    { section = "recent_files", limit = 8, padding = 1 },
+    { title = "MRU ", file = vim.fn.fnamemodify(".", ":~"), padding = 1 },
+    { section = "recent_files", cwd = true, limit = 8, padding = 1 },
+    { title = "Sessions", padding = 1 },
+    { section = "projects", padding = 1 },
+    { title = "Bookmarks", padding = 1 },
+    { section = "keys" },
+  },
+}
+```
+
 ## ⚙️ Config
 
 ```lua
@@ -95,11 +231,12 @@ In the example below, both sections are equivalent.
   col = nil, -- dashboard position. nil for center
   pane_gap = 4, -- empty columns between vertical panes
   autokeys = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", -- autokey sequence
-  -- These settings are only relevant if you don't configure your own sections
+  -- These settings are used by some built-in sections
   preset = {
     -- Defaults to a picker that supports `fzf-lua`, `telescope.nvim` and `mini.pick`
     ---@type fun(cmd:string, opts:table)|nil
     pick = nil,
+    -- Used by the `keys` section to show keymaps
     ---@type snacks.dashboard.Item[]
     keys = {
       { icon = " ", key = "f", desc = "Find File", action = ":lua Snacks.dashboard.pick('files')" },
@@ -111,92 +248,35 @@ In the example below, both sections are equivalent.
       { icon = "󰒲 ", key = "L", desc = "Lazy", action = ":Lazy", enabled = package.loaded.lazy },
       { icon = " ", key = "q", desc = "Quit", action = ":qa" },
     },
-    header = vim.trim(
-      [[
+    -- Used by the `header` section
+    header = [[
 ███╗   ██╗███████╗ ██████╗ ██╗   ██╗██╗███╗   ███╗
 ████╗  ██║██╔════╝██╔═══██╗██║   ██║██║████╗ ████║
 ██╔██╗ ██║█████╗  ██║   ██║██║   ██║██║██╔████╔██║
 ██║╚██╗██║██╔══╝  ██║   ██║╚██╗ ██╔╝██║██║╚██╔╝██║
 ██║ ╚████║███████╗╚██████╔╝ ╚████╔╝ ██║██║ ╚═╝ ██║
-╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝]]
-    ),
+╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝]],
   },
+  -- item field formatters
   formats = {
-    icon = { "%s", width = 2 },
+    icon = function(item, sss)
+      if item.file and item.icon == "file" or item.icon == "directory" then
+        return M.icon(item.file, item.icon)
+      end
+      return { item.icon, width = 2, hl = "icon" }
+    end,
     footer = { "%s", align = "center" },
     header = { "%s", align = "center" },
     file = function(item, ctx)
       local fname = vim.fn.fnamemodify(item.file, ":~")
-      return { ctx.width and #fname > ctx.width and vim.fn.pathshorten(fname) or fname, hl = "file" }
+      fname = ctx.width and #fname > ctx.width and vim.fn.pathshorten(fname) or fname
+      local dir, file = fname:match("^(.*)/(.+)$")
+      return dir and { { dir .. "/", hl = "dir" }, { file, hl = "file" } } or { { fname, hl = "file" } }
     end,
   },
-  -- {
-  --   title = "Keymaps",
-  --   enabled = false,
-  --   icon = " ",
-  --   padding = 1,
-  --   indent = 2,
-  --   section = "keys",
-  -- },
-  -- {
-  --   section = "terminal",
-  --   pane = 2,
-  --   -- indent = 0,
-  --   -- cmd = "pokemon-colorscripts -r --no-title; sleep .1",
-  --   -- cmd = "colorscript -r",
-  --   -- cmd = "neofetch",
-  --   -- cmd = "chafa ~/.config/wall.png --format symbols --symbols vhalf --size 60x18 --stretch",
-  --   cmd = "colorscript -e square",
-  --   -- cmd = [[hub l -10 --since='1 week ago' | devmoji --log --color | sed 's/^/  /']],
-  --   height = 5,
-  --   padding = 1,
-  --   -- random = 3,
-  -- },
   sections = {
-    { section = "header", enabled = true },
-    {
-      section = "terminal",
-      pane = 2,
-      cmd = "colorscript -e square",
-      -- cmd = "figlet Neovim | lolcat",
-      height = 5,
-      padding = 1,
-    },
-    {
-      section = "keys",
-      gap = 1,
-      padding = 1,
-      enabled = true,
-    },
-    {
-      pane = 2,
-      title = "Recent Files",
-      icon = " ",
-      section = "recent_files",
-      indent = 2,
-      padding = 1,
-    },
-    {
-      pane = 2,
-      title = "Projects",
-      icon = " ",
-      indent = 2,
-      section = "projects",
-      limit = 10,
-      padding = 1,
-    },
-    {
-      title = "Git Status",
-      enabled = vim.fn.isdirectory(".git") == 1,
-      icon = " ",
-      section = "terminal",
-      pane = 2,
-      cmd = "hub st",
-      height = 5,
-      padding = 1,
-      ttl = 5 * 60,
-      indent = 3,
-    },
+    { section = "header" },
+    { section = "keys", gap = 1, padding = 1 },
     { section = "startup" },
   },
 }
