@@ -73,11 +73,12 @@ local defaults = {
   col = nil, -- dashboard position. nil for center
   pane_gap = 4, -- empty columns between vertical panes
   autokeys = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", -- autokey sequence
-  -- These settings are only relevant if you don't configure your own sections
+  -- These settings are used by some built-in sections
   preset = {
     -- Defaults to a picker that supports `fzf-lua`, `telescope.nvim` and `mini.pick`
     ---@type fun(cmd:string, opts:table)|nil
     pick = nil,
+    -- Used by the `keys` section to show keymaps
     -- stylua: ignore
     ---@type snacks.dashboard.Item[]
     keys = {
@@ -90,94 +91,38 @@ local defaults = {
       { icon = "󰒲 ", key = "L", desc = "Lazy", action = ":Lazy", enabled = package.loaded.lazy },
       { icon = " ", key = "q", desc = "Quit", action = ":qa" },
     },
-    header = vim.trim(
-      [[
+    -- Used by the `header` section
+    header = [[
 ███╗   ██╗███████╗ ██████╗ ██╗   ██╗██╗███╗   ███╗
 ████╗  ██║██╔════╝██╔═══██╗██║   ██║██║████╗ ████║
 ██╔██╗ ██║█████╗  ██║   ██║██║   ██║██║██╔████╔██║
 ██║╚██╗██║██╔══╝  ██║   ██║╚██╗ ██╔╝██║██║╚██╔╝██║
 ██║ ╚████║███████╗╚██████╔╝ ╚████╔╝ ██║██║ ╚═╝ ██║
-╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝]]
-    ),
+╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝]],
   },
+  -- item field formatters
   formats = {
-    icon = { "%s", width = 2 },
+    icon = function(item, sss)
+      if item.file and item.icon == "file" or item.icon == "directory" then
+        return M.icon(item.file, item.icon)
+      end
+      return { item.icon, width = 2, hl = "icon" }
+    end,
     footer = { "%s", align = "center" },
     header = { "%s", align = "center" },
     file = function(item, ctx)
       local fname = vim.fn.fnamemodify(item.file, ":~")
-      return { ctx.width and #fname > ctx.width and vim.fn.pathshorten(fname) or fname, hl = "file" }
+      fname = ctx.width and #fname > ctx.width and vim.fn.pathshorten(fname) or fname
+      local dir, file = fname:match("^(.*)/(.+)$")
+      return dir and { { dir .. "/", hl = "dir" }, { file, hl = "file" } } or { { fname, hl = "file" } }
     end,
   },
-  -- {
-  --   title = "Keymaps",
-  --   enabled = false,
-  --   icon = " ",
-  --   padding = 1,
-  --   indent = 2,
-  --   section = "keys",
-  -- },
-  -- {
-  --   section = "terminal",
-  --   pane = 2,
-  --   -- indent = 0,
-  --   -- cmd = "pokemon-colorscripts -r --no-title; sleep .1",
-  --   -- cmd = "colorscript -r",
-  --   -- cmd = "neofetch",
-  --   -- cmd = "chafa ~/.config/wall.png --format symbols --symbols vhalf --size 60x18 --stretch",
-  --   cmd = "colorscript -e square",
-  --   -- cmd = [[hub l -10 --since='1 week ago' | devmoji --log --color | sed 's/^/  /']],
-  --   height = 5,
-  --   padding = 1,
-  --   -- random = 3,
-  -- },
   sections = {
-    { section = "header", enabled = true },
-    {
-      section = "terminal",
-      pane = 2,
-      cmd = "colorscript -e square",
-      -- cmd = "figlet Neovim | lolcat",
-      height = 5,
-      padding = 1,
-    },
-    {
-      section = "keys",
-      gap = 1,
-      padding = 1,
-      enabled = true,
-    },
-    {
-      pane = 2,
-      title = "Recent Files",
-      icon = " ",
-      section = "recent_files",
-      indent = 2,
-      padding = 1,
-    },
-    {
-      pane = 2,
-      title = "Projects",
-      icon = " ",
-      indent = 2,
-      section = "projects",
-      limit = 10,
-      padding = 1,
-    },
-    {
-      title = "Git Status",
-      icon = " ",
-      section = "terminal",
-      pane = 2,
-      cmd = "hub st",
-      height = 5,
-      padding = 1,
-      ttl = 5 * 60,
-      indent = 3,
-    },
+    { section = "header" },
+    { section = "keys", gap = 1, padding = 1 },
     { section = "startup" },
   },
-  debug = true,
+  debug = false,
 }
 
 -- The default style for the dashboard.
@@ -215,6 +160,7 @@ M.ns = vim.api.nvim_create_namespace("snacks_dashboard")
 local links = {
   Desc = "Special",
   File = "Special",
+  Dir = "NonText",
   Footer = "Title",
   Header = "Title",
   Icon = "Special",
@@ -251,9 +197,10 @@ local D = {}
 function M.open(opts)
   local self = setmetatable({}, { __index = D })
   self.opts = Snacks.config.get("dashboard", defaults, opts) --[[@as snacks.dashboard.Opts]]
+  self:trace("buf/win")
   self.buf = self.opts.buf or vim.api.nvim_create_buf(false, true)
   self.win = self.opts.win or Snacks.win({ style = "dashboard", buf = self.buf, enter = true }).win --[[@as number]]
-  self._stats = {}
+  self:trace() -- buf/win
   self:trace("dashboard")
   self:trace("init")
   self:init()
@@ -272,10 +219,15 @@ function D:trace(name)
 end
 
 function D:init()
-  if self.opts.debug then
-    self:trace("icon-provider")
-    M.icon("init.lua")
-    self:trace()
+  if self.opts.debug then -- track initial load of icon provider
+    local icon = M.icon
+    M.icon = function(...)
+      self:trace("icon-provider")
+      local ret = icon(...)
+      self:trace()
+      M.icon = icon
+      return ret
+    end
   end
   vim.api.nvim_win_set_buf(self.win, self.buf)
   vim.o.ei = "all"
@@ -388,12 +340,16 @@ function D:align(item, width, align)
   end
 end
 
---- Create a block from a list of texts (possibly with newlines)
 ---@param texts snacks.dashboard.Text[]|snacks.dashboard.Text|string
-function D:block(texts)
+function D:texts(texts)
   texts = type(texts) == "string" and { { texts } } or texts
   texts = type(texts[1]) == "string" and { texts } or texts
-  ---@cast texts snacks.dashboard.Text[]
+  return texts --[[ @as snacks.dashboard.Text[] ]]
+end
+
+--- Create a block from a list of texts (possibly with newlines)
+---@param texts snacks.dashboard.Text[]
+function D:block(texts)
   local ret = { { width = 0 }, width = 0 } ---@type snacks.dashboard.Block
   for _, text in ipairs(texts) do
     -- PERF: only split lines when needed
@@ -417,24 +373,31 @@ function D:format(item)
   local width = item.indent or 0
 
   ---@param fields string[]
-  ---@param opts {align?:"left"|"center"|"right", padding?:number, flex?:boolean}
+  ---@param opts {align?:"left"|"center"|"right", padding?:number, flex?:boolean, multi?:boolean}
   local function find(fields, opts)
     local flex = opts.flex and math.max(0, self.opts.width - width) or nil
+    local texts = {} ---@type snacks.dashboard.Text[]
     for _, k in ipairs(fields) do
       if item[k] then
-        local block = self:block(self:format_field(item, k, flex))
-        block.width = block.width + (opts.padding or 0)
-        width = width + block.width
-        return block
+        vim.list_extend(texts, self:texts(self:format_field(item, k, flex)))
+        if not opts.multi then
+          break
+        end
       end
     end
-    return { width = 0 }
+    if #texts == 0 then
+      return { width = 0 }
+    end
+    local block = self:block(texts)
+    block.width = block.width + (opts.padding or 0)
+    width = width + block.width
+    return block
   end
 
-  local block = item.text and self:block(item.text)
+  local block = item.text and self:block(self:texts(item.text))
   local left = block and { width = 0 } or find({ "icon" }, { align = "left", padding = 1 })
   local right = block and { width = 0 } or find({ "label", "key" }, { align = "right", padding = 1 })
-  local center = block or find({ "file", "desc", "header", "footer", "title" }, { flex = true })
+  local center = block or find({ "header", "footer", "title", "desc", "file" }, { flex = true, multi = true })
 
   local padding = self:padding(item)
   local ret = { width = self.opts.width } ---@type snacks.dashboard.Block
@@ -702,12 +665,20 @@ function D:update()
   end, { buffer = self.buf, nowait = true, desc = "Dashboard action" })
 
   -- cursor movement
-  local last = { 0, 0 }
+  local last = { 1, 0 }
   vim.api.nvim_create_autocmd("CursorMoved", {
     group = vim.api.nvim_create_augroup("snacks_dashboard_cursor", { clear = true }),
     buffer = self.buf,
     callback = function()
       local item = self:find(vim.api.nvim_win_get_cursor(self.win), last)
+      if not item then -- can happen for panes without actionable items
+        for _, it in ipairs(self.items) do
+          if it.action then
+            item = it
+            break
+          end
+        end
+      end
       if item then
         last = { item._.row, (self.lines[item._.row]:find("[%w%d%p]", item._.col + 1) or item._.col + 1) - 1 }
       end
@@ -830,7 +801,7 @@ function M.sections.recent_files(opts)
       if file:sub(1, #root) == root and uv.fs_stat(file) then
         ret[#ret + 1] = {
           file = file,
-          icon = M.icon(file),
+          icon = "file",
           action = ":e " .. file,
           autokey = true,
         }
@@ -873,7 +844,7 @@ function M.sections.projects(opts)
   for _, dir in ipairs(dirs) do
     ret[#ret + 1] = {
       file = dir,
-      icon = M.icon(dir, "directory"),
+      icon = "directory",
       action = function(self)
         if opts.action then
           return opts.action(dir)
@@ -901,7 +872,7 @@ end
 ---@return snacks.dashboard.Gen
 function M.sections.header()
   return function(self)
-    return { header = self.opts.preset.header, padding = 1 }
+    return { header = self.opts.preset.header, padding = 2 }
   end
 end
 
@@ -981,7 +952,8 @@ function M.sections.terminal(opts)
           width = width,
           win = self.win,
         })
-        Snacks.util.wo(win, { winhighlight = "NormalFloat:SnacksDashboardTerminal" })
+        local hl = opts.hl and hl_groups[opts.hl] or opts.hl or "SnacksDashboardTerminal"
+        Snacks.util.wo(win, { winhighlight = "NormalFloat:" .. hl })
         local close = vim.schedule_wrap(function()
           pcall(vim.api.nvim_win_close, win, true)
           pcall(vim.api.nvim_buf_delete, buf, { force = true })
