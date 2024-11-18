@@ -1,11 +1,12 @@
 local M = {}
 
-M.style = "compact_files"
+M.style = "pokemon"
 
 ---@type table<string, snacks.dashboard.Section>
 M.examples = {}
 
 -- Similar to the Emacs Doom dashboard
+-- ![image](https://github.com/user-attachments/assets/823f702d-e5d0-449a-afd2-684e1fb97622)
 M.examples.doom = {
   sections = {
     { section = "header" },
@@ -15,6 +16,7 @@ M.examples.doom = {
 }
 
 -- Similar to the Vim Startify dashboard
+-- ![image](https://github.com/user-attachments/assets/561eff8c-ddf0-4de9-8485-e6be18a19c0b)
 M.examples.startify = {
   formats = {
     key = function(item)
@@ -35,6 +37,7 @@ M.examples.startify = {
 }
 
 -- A more advanced example using multiple panes
+-- ![image](https://github.com/user-attachments/assets/bbf4d2cd-6fc5-4122-a462-0ca59ba89545)
 M.examples.advanced = {
   sections = {
     { section = "header" },
@@ -65,6 +68,7 @@ M.examples.advanced = {
 }
 
 -- A simple example with a header, keys, recent files, and projects
+-- ![image](https://github.com/user-attachments/assets/e98997b6-07d3-4162-bc06-2768b78fe353)
 M.examples.files = {
   sections = {
     { section = "header" },
@@ -76,6 +80,7 @@ M.examples.files = {
 }
 
 -- A more compact version of the `files` example
+-- ![image](https://github.com/user-attachments/assets/772e84fe-b220-4841-bbe9-6e28780dc30a)
 M.examples.compact_files = {
   sections = {
     { section = "header" },
@@ -87,6 +92,7 @@ M.examples.compact_files = {
 }
 
 -- An example using the `chafa` command to display an image
+-- ![image](https://github.com/user-attachments/assets/e498ef8f-83ce-4917-a720-8cb31d98ecec)
 M.examples.chafa = {
   sections = {
     {
@@ -104,6 +110,7 @@ M.examples.chafa = {
 }
 
 -- Pokemons, because why not?
+-- ![image](https://github.com/user-attachments/assets/2fb17ecc-8bc0-48d3-a023-aa8dfc70247e)
 M.examples.pokemon = {
   sections = {
     { section = "header" },

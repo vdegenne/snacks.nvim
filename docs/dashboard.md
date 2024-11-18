@@ -88,6 +88,7 @@ In the example below, both sections are equivalent.
 ### `advanced`
 
 A more advanced example using multiple panes
+![image](https://github.com/user-attachments/assets/bbf4d2cd-6fc5-4122-a462-0ca59ba89545)
 
 ```lua
 {
@@ -123,6 +124,7 @@ A more advanced example using multiple panes
 ### `chafa`
 
 An example using the `chafa` command to display an image
+![image](https://github.com/user-attachments/assets/e498ef8f-83ce-4917-a720-8cb31d98ecec)
 
 ```lua
 {
@@ -145,6 +147,7 @@ An example using the `chafa` command to display an image
 ### `compact_files`
 
 A more compact version of the `files` example
+![image](https://github.com/user-attachments/assets/772e84fe-b220-4841-bbe9-6e28780dc30a)
 
 ```lua
 {
@@ -161,6 +164,7 @@ A more compact version of the `files` example
 ### `doom`
 
 Similar to the Emacs Doom dashboard
+![image](https://github.com/user-attachments/assets/823f702d-e5d0-449a-afd2-684e1fb97622)
 
 ```lua
 {
@@ -175,6 +179,7 @@ Similar to the Emacs Doom dashboard
 ### `files`
 
 A simple example with a header, keys, recent files, and projects
+![image](https://github.com/user-attachments/assets/e98997b6-07d3-4162-bc06-2768b78fe353)
 
 ```lua
 {
@@ -191,6 +196,7 @@ A simple example with a header, keys, recent files, and projects
 ### `pokemon`
 
 Pokemons, because why not?
+![image](https://github.com/user-attachments/assets/2fb17ecc-8bc0-48d3-a023-aa8dfc70247e)
 
 ```lua
 {
@@ -213,6 +219,7 @@ Pokemons, because why not?
 ### `startify`
 
 Similar to the Vim Startify dashboard
+![image](https://github.com/user-attachments/assets/561eff8c-ddf0-4de9-8485-e6be18a19c0b)
 
 ```lua
 {
