@@ -91,6 +91,10 @@ In the example below, both sections are equivalent.
 ---@field formats table<string, snacks.dashboard.Text|fun(item:snacks.dashboard.Item, ctx:snacks.dashboard.Format.ctx):snacks.dashboard.Text>
 {
   width = 60,
+  row = nil, -- dashboard position. nil for center
+  col = nil, -- dashboard position. nil for center
+  pane_gap = 4, -- empty columns between vertical panes
+  autokeys = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", -- autokey sequence
   -- These settings are only relevant if you don't configure your own sections
   preset = {
     -- Defaults to a picker that supports `fzf-lua`, `telescope.nvim` and `mini.pick`
@@ -104,7 +108,7 @@ In the example below, both sections are equivalent.
       { icon = " ", key = "r", desc = "Recent Files", action = ":lua Snacks.dashboard.pick('oldfiles')" },
       { icon = " ", key = "c", desc = "Config", action = ":lua Snacks.dashboard.pick('files', {cwd = vim.fn.stdpath('config')})" },
       { icon = " ", key = "s", desc = "Restore Session", section = "session" },
-      { icon = "󰒲 ", key = "l", desc = "Lazy", action = ":Lazy", enabled = package.loaded.lazy },
+      { icon = "󰒲 ", key = "L", desc = "Lazy", action = ":Lazy", enabled = package.loaded.lazy },
       { icon = " ", key = "q", desc = "Quit", action = ":qa" },
     },
     header = vim.trim(
@@ -126,18 +130,37 @@ In the example below, both sections are equivalent.
       return { ctx.width and #fname > ctx.width and vim.fn.pathshorten(fname) or fname, hl = "file" }
     end,
   },
+  -- {
+  --   title = "Keymaps",
+  --   enabled = false,
+  --   icon = " ",
+  --   padding = 1,
+  --   indent = 2,
+  --   section = "keys",
+  -- },
+  -- {
+  --   section = "terminal",
+  --   pane = 2,
+  --   -- indent = 0,
+  --   -- cmd = "pokemon-colorscripts -r --no-title; sleep .1",
+  --   -- cmd = "colorscript -r",
+  --   -- cmd = "neofetch",
+  --   -- cmd = "chafa ~/.config/wall.png --format symbols --symbols vhalf --size 60x18 --stretch",
+  --   cmd = "colorscript -e square",
+  --   -- cmd = [[hub l -10 --since='1 week ago' | devmoji --log --color | sed 's/^/  /']],
+  --   height = 5,
+  --   padding = 1,
+  --   -- random = 3,
+  -- },
   sections = {
     { section = "header", enabled = true },
     {
       section = "terminal",
-      cmd = "pokemon-colorscripts -r --no-title; sleep .1",
-      -- cmd = "colorscript -r",
-      -- cmd = "neofetch",
-      cmd = "chafa ~/.config/wall.png --format symbols --symbols vhalf --size 60x18 --stretch",
+      pane = 2,
       cmd = "colorscript -e square",
+      -- cmd = "figlet Neovim | lolcat",
       height = 5,
       padding = 1,
-      -- random = 3,
     },
     {
       section = "keys",
@@ -146,31 +169,33 @@ In the example below, both sections are equivalent.
       enabled = true,
     },
     {
-      title = "Keymaps",
-      enabled = false,
-      icon = " ",
-      padding = 1,
-      indent = 2,
-      section = "keys",
-    },
-    {
-      enabled = false,
+      pane = 2,
       title = "Recent Files",
       icon = " ",
       section = "recent_files",
-      limit = 5,
-      cwd = true,
       indent = 2,
       padding = 1,
     },
     {
-      enabled = true,
+      pane = 2,
       title = "Projects",
       icon = " ",
       indent = 2,
       section = "projects",
       limit = 10,
       padding = 1,
+    },
+    {
+      title = "Git Status",
+      enabled = vim.fn.isdirectory(".git") == 1,
+      icon = " ",
+      section = "terminal",
+      pane = 2,
+      cmd = "hub st",
+      height = 5,
+      padding = 1,
+      ttl = 5 * 60,
+      indent = 3,
     },
     { section = "startup" },
   },
@@ -371,7 +396,7 @@ Snacks.dashboard.sections.startup()
 ### `Snacks.dashboard.sections.terminal()`
 
 ```lua
----@param opts {cmd:string|string[], ttl?:number, height?:number, width?:number, random?:number}
+---@param opts {cmd:string|string[], ttl?:number, height?:number, width?:number, random?:number}|snacks.dashboard.Item
 ---@return snacks.dashboard.Gen
 Snacks.dashboard.sections.terminal(opts)
 ```

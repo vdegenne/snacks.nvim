@@ -49,6 +49,7 @@
 ---@field statuscolumn snacks.statuscolumn
 ---@field terminal snacks.terminal
 ---@field toggle snacks.toggle
+---@field util snacks.util
 ---@field win snacks.win
 ---@field words snacks.words
 Snacks = {}
