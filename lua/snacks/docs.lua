@@ -234,6 +234,11 @@ function M.render(name, info)
     prefix = "Snacks"
   end
 
+  if info.config then
+    add("## ⚙️ Config\n")
+    add(M.md(info.config))
+  end
+
   local examples = M.examples(name)
   local names = vim.tbl_keys(examples)
   table.sort(names)
@@ -244,11 +249,6 @@ function M.render(name, info)
       add(("### `%s`\n"):format(n))
       add(M.md(example))
     end
-  end
-
-  if info.config then
-    add("## ⚙️ Config\n")
-    add(M.md(info.config))
   end
 
   if #info.styles > 0 then

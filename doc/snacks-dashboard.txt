@@ -6,7 +6,8 @@ Table of Contents                         *snacks-dashboard-table-of-contents*
 1. Usage                                              |snacks-dashboard-usage|
   - Section actions                   |snacks-dashboard-usage-section-actions|
   - Section text                         |snacks-dashboard-usage-section-text|
-2. Examples                                        |snacks-dashboard-examples|
+2. Config                                            |snacks-dashboard-config|
+3. Examples                                        |snacks-dashboard-examples|
   - advanced                              |snacks-dashboard-examples-advanced|
   - chafa                                    |snacks-dashboard-examples-chafa|
   - compact_files                    |snacks-dashboard-examples-compact_files|
@@ -14,7 +15,6 @@ Table of Contents                         *snacks-dashboard-table-of-contents*
   - files                                    |snacks-dashboard-examples-files|
   - pokemon                                |snacks-dashboard-examples-pokemon|
   - startify                              |snacks-dashboard-examples-startify|
-3. Config                                            |snacks-dashboard-config|
 4. Styles                                            |snacks-dashboard-styles|
   - dashboard                              |snacks-dashboard-styles-dashboard|
 5. Types                                              |snacks-dashboard-types|
@@ -119,7 +119,72 @@ In the example below, both sections are equivalent.
 
 
 ==============================================================================
-2. Examples                                        *snacks-dashboard-examples*
+2. Config                                            *snacks-dashboard-config*
+
+>lua
+    ---@class snacks.dashboard.Config
+    ---@field sections snacks.dashboard.Section
+    ---@field formats table<string, snacks.dashboard.Text|fun(item:snacks.dashboard.Item, ctx:snacks.dashboard.Format.ctx):snacks.dashboard.Text>
+    {
+      width = 60,
+      row = nil, -- dashboard position. nil for center
+      col = nil, -- dashboard position. nil for center
+      pane_gap = 4, -- empty columns between vertical panes
+      autokeys = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", -- autokey sequence
+      -- These settings are used by some built-in sections
+      preset = {
+        -- Defaults to a picker that supports `fzf-lua`, `telescope.nvim` and `mini.pick`
+        ---@type fun(cmd:string, opts:table)|nil
+        pick = nil,
+        -- Used by the `keys` section to show keymaps
+        ---@type snacks.dashboard.Item[]
+        keys = {
+          { icon = " ", key = "f", desc = "Find File", action = ":lua Snacks.dashboard.pick('files')" },
+          { icon = " ", key = "n", desc = "New File", action = ":ene | startinsert" },
+          { icon = " ", key = "g", desc = "Find Text", action = ":lua Snacks.dashboard.pick('live_grep')" },
+          { icon = " ", key = "r", desc = "Recent Files", action = ":lua Snacks.dashboard.pick('oldfiles')" },
+          { icon = " ", key = "c", desc = "Config", action = ":lua Snacks.dashboard.pick('files', {cwd = vim.fn.stdpath('config')})" },
+          { icon = " ", key = "s", desc = "Restore Session", section = "session" },
+          { icon = "󰒲 ", key = "L", desc = "Lazy", action = ":Lazy", enabled = package.loaded.lazy },
+          { icon = " ", key = "q", desc = "Quit", action = ":qa" },
+        },
+        -- Used by the `header` section
+        header = [[
+    ███╗   ██╗███████╗ ██████╗ ██╗   ██╗██╗███╗   ███╗
+    ████╗  ██║██╔════╝██╔═══██╗██║   ██║██║████╗ ████║
+    ██╔██╗ ██║█████╗  ██║   ██║██║   ██║██║██╔████╔██║
+    ██║╚██╗██║██╔══╝  ██║   ██║╚██╗ ██╔╝██║██║╚██╔╝██║
+    ██║ ╚████║███████╗╚██████╔╝ ╚████╔╝ ██║██║ ╚═╝ ██║
+    ╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝]],
+      },
+      -- item field formatters
+      formats = {
+        icon = function(item, sss)
+          if item.file and item.icon == "file" or item.icon == "directory" then
+            return M.icon(item.file, item.icon)
+          end
+          return { item.icon, width = 2, hl = "icon" }
+        end,
+        footer = { "%s", align = "center" },
+        header = { "%s", align = "center" },
+        file = function(item, ctx)
+          local fname = vim.fn.fnamemodify(item.file, ":~")
+          fname = ctx.width and #fname > ctx.width and vim.fn.pathshorten(fname) or fname
+          local dir, file = fname:match("^(.*)/(.+)$")
+          return dir and { { dir .. "/", hl = "dir" }, { file, hl = "file" } } or { { fname, hl = "file" } }
+        end,
+      },
+      sections = {
+        { section = "header" },
+        { section = "keys", gap = 1, padding = 1 },
+        { section = "startup" },
+      },
+    }
+<
+
+
+==============================================================================
+3. Examples                                        *snacks-dashboard-examples*
 
 
 ADVANCED                                  *snacks-dashboard-examples-advanced*
@@ -274,71 +339,6 @@ Similar to the Vim Startify dashboard
         { section = "projects", padding = 1 },
         { title = "Bookmarks", padding = 1 },
         { section = "keys" },
-      },
-    }
-<
-
-
-==============================================================================
-3. Config                                            *snacks-dashboard-config*
-
->lua
-    ---@class snacks.dashboard.Config
-    ---@field sections snacks.dashboard.Section
-    ---@field formats table<string, snacks.dashboard.Text|fun(item:snacks.dashboard.Item, ctx:snacks.dashboard.Format.ctx):snacks.dashboard.Text>
-    {
-      width = 60,
-      row = nil, -- dashboard position. nil for center
-      col = nil, -- dashboard position. nil for center
-      pane_gap = 4, -- empty columns between vertical panes
-      autokeys = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", -- autokey sequence
-      -- These settings are used by some built-in sections
-      preset = {
-        -- Defaults to a picker that supports `fzf-lua`, `telescope.nvim` and `mini.pick`
-        ---@type fun(cmd:string, opts:table)|nil
-        pick = nil,
-        -- Used by the `keys` section to show keymaps
-        ---@type snacks.dashboard.Item[]
-        keys = {
-          { icon = " ", key = "f", desc = "Find File", action = ":lua Snacks.dashboard.pick('files')" },
-          { icon = " ", key = "n", desc = "New File", action = ":ene | startinsert" },
-          { icon = " ", key = "g", desc = "Find Text", action = ":lua Snacks.dashboard.pick('live_grep')" },
-          { icon = " ", key = "r", desc = "Recent Files", action = ":lua Snacks.dashboard.pick('oldfiles')" },
-          { icon = " ", key = "c", desc = "Config", action = ":lua Snacks.dashboard.pick('files', {cwd = vim.fn.stdpath('config')})" },
-          { icon = " ", key = "s", desc = "Restore Session", section = "session" },
-          { icon = "󰒲 ", key = "L", desc = "Lazy", action = ":Lazy", enabled = package.loaded.lazy },
-          { icon = " ", key = "q", desc = "Quit", action = ":qa" },
-        },
-        -- Used by the `header` section
-        header = [[
-    ███╗   ██╗███████╗ ██████╗ ██╗   ██╗██╗███╗   ███╗
-    ████╗  ██║██╔════╝██╔═══██╗██║   ██║██║████╗ ████║
-    ██╔██╗ ██║█████╗  ██║   ██║██║   ██║██║██╔████╔██║
-    ██║╚██╗██║██╔══╝  ██║   ██║╚██╗ ██╔╝██║██║╚██╔╝██║
-    ██║ ╚████║███████╗╚██████╔╝ ╚████╔╝ ██║██║ ╚═╝ ██║
-    ╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝]],
-      },
-      -- item field formatters
-      formats = {
-        icon = function(item, sss)
-          if item.file and item.icon == "file" or item.icon == "directory" then
-            return M.icon(item.file, item.icon)
-          end
-          return { item.icon, width = 2, hl = "icon" }
-        end,
-        footer = { "%s", align = "center" },
-        header = { "%s", align = "center" },
-        file = function(item, ctx)
-          local fname = vim.fn.fnamemodify(item.file, ":~")
-          fname = ctx.width and #fname > ctx.width and vim.fn.pathshorten(fname) or fname
-          local dir, file = fname:match("^(.*)/(.+)$")
-          return dir and { { dir .. "/", hl = "dir" }, { file, hl = "file" } } or { { fname, hl = "file" } }
-        end,
-      },
-      sections = {
-        { section = "header" },
-        { section = "keys", gap = 1, padding = 1 },
-        { section = "startup" },
       },
     }
 <
