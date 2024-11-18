@@ -72,6 +72,7 @@ local defaults = {
   row = nil, -- dashboard position. nil for center
   col = nil, -- dashboard position. nil for center
   pane_gap = 4, -- empty columns between vertical panes
+  autokeys = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", -- autokey sequence
   -- These settings are only relevant if you don't configure your own sections
   preset = {
     -- Defaults to a picker that supports `fzf-lua`, `telescope.nvim` and `mini.pick`
@@ -587,9 +588,22 @@ function D:render()
   self.items = self:resolve(self.opts.sections)
   self:trace()
 
+  local autokeys = vim.split(self.opts.autokeys:gsub("[hjkl]", ""), "")
+  ---@param key? string
+  local function use_key(key)
+    key = key or table.remove(autokeys, 1)
+    autokeys = vim.tbl_filter(function(k)
+      return k ~= key
+    end, autokeys)
+    return key
+  end
+
   self:trace("layout")
   local panes = {} ---@type snacks.dashboard.Item[][]
   for _, item in ipairs(self.items) do
+    if item.key and not item.autokey then
+      use_key(item.key)
+    end
     local pane = item.pane or 1
     pane = math.fmod(pane - 1, max_panes) + 1 -- distribute panes evenly
     panes[pane] = panes[pane] or {}
@@ -597,7 +611,6 @@ function D:render()
   end
   self.panes = math.max(unpack(vim.tbl_keys(panes))) or 1
 
-  local autokey = 0
   self.col = self.opts.col
     or math.floor(self._size.width - (self.opts.width * #panes + self.opts.pane_gap * (#panes - 1))) / 2
 
@@ -606,8 +619,7 @@ function D:render()
     local row = 0
     for _, item in ipairs(panes[p] or {}) do
       if item.autokey then
-        item.key = tostring(autokey)
-        autokey = autokey + 1
+        item.key = use_key()
       end
       for l, line in ipairs(self:format(item)) do
         row = row + 1
