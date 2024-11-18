@@ -119,11 +119,13 @@ local win_opts = {
   "zindex",
 }
 
-vim.api.nvim_set_hl(0, "SnacksBackdrop", { bg = "#000000", default = true })
-vim.api.nvim_set_hl(0, "SnacksNormal", { link = "NormalFloat", default = true })
-vim.api.nvim_set_hl(0, "SnacksNormalNC", { link = "NormalFloat", default = true })
-vim.api.nvim_set_hl(0, "SnacksWinBar", { link = "Title", default = true })
-vim.api.nvim_set_hl(0, "SnacksWinBarNC", { link = "SnacksWinBar", default = true })
+Snacks.util.set_hl({
+  Backdrop = { bg = "#000000" },
+  Normal = "NormalFloat",
+  NormalNC = "NormalFloat",
+  WinBar = "Title",
+  WinBarNC = "SnacksWinBar",
+}, { prefix = "Snacks", default = true })
 
 M.transparent = false
 

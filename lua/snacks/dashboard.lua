@@ -210,6 +210,24 @@ Snacks.config.style("dashboard", {
 
 M.ns = vim.api.nvim_create_namespace("snacks_dashboard")
 
+local links = {
+  Desc = "Special",
+  File = "Special",
+  Footer = "Title",
+  Header = "Title",
+  Icon = "Special",
+  Key = "Number",
+  Normal = "Normal",
+  Terminal = "SnacksDashboardNormal",
+  Special = "Special",
+  Title = "Title",
+}
+local hl_groups = {} ---@type table<string, string>
+for group in pairs(links) do
+  hl_groups[group:lower()] = "SnacksDashboard" .. group
+end
+Snacks.util.set_hl(links, { prefix = "SnacksDashboard", default = true })
+
 ---@class snacks.dashboard.Opts: snacks.dashboard.Config
 ---@field buf? number the buffer to use. If not provided, a new buffer will be created
 ---@field win? number the window to use. If not provided, a new floating window will be created
@@ -218,7 +236,6 @@ M.ns = vim.api.nvim_create_namespace("snacks_dashboard")
 ---@field opts snacks.dashboard.Opts
 ---@field buf number
 ---@field win number
----@field hls table<string, string>
 ---@field _size? {width:number, height:number}
 ---@field items snacks.dashboard.Item[]
 ---@field row? number
@@ -233,29 +250,12 @@ function M.open(opts)
   self.opts = Snacks.config.get("dashboard", defaults, opts) --[[@as snacks.dashboard.Opts]]
   self.buf = self.opts.buf or vim.api.nvim_create_buf(false, true)
   self.win = self.opts.win or Snacks.win({ style = "dashboard", buf = self.buf, enter = true }).win --[[@as number]]
-  self.hls = {}
   self:init()
   self:render()
   return self
 end
 
 function D:init()
-  local links = {
-    Desc = "Special",
-    File = "Special",
-    Footer = "Title",
-    Header = "Title",
-    Icon = "Special",
-    Key = "Number",
-    Normal = "Normal",
-    Terminal = "SnacksDashboardNormal",
-    Special = "Special",
-    Title = "Title",
-  }
-  for group, link in pairs(links) do
-    vim.api.nvim_set_hl(0, "SnacksDashboard" .. group, { link = link, default = true })
-    self.hls[group:lower()] = "SnacksDashboard" .. group
-  end
   vim.api.nvim_win_set_buf(self.win, self.buf)
 
   vim.o.ei = "all"
@@ -606,7 +606,7 @@ function D:render()
             table.insert(extmarks, {
               row = row - 1,
               col = #lines[row] - #text[1],
-              opts = { hl_group = self.hls[text.hl] or text.hl, end_col = #lines[row] },
+              opts = { hl_group = hl_groups[text.hl] or text.hl, end_col = #lines[row] },
             })
           end
         end

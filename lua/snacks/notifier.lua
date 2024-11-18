@@ -285,9 +285,7 @@ function N:init()
     links[hl("Title", level)] = link or ("Diagnostic" .. Level)
     links[hl("Footer", level)] = link or ("Diagnostic" .. Level)
   end
-  for k, v in pairs(links) do
-    vim.api.nvim_set_hl(0, k, { link = v, default = true })
-  end
+  Snacks.util.set_hl(links, { default = true })
 
   -- resize handler
   vim.api.nvim_create_autocmd("VimResized", {
