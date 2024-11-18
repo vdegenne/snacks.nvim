@@ -1,6 +1,6 @@
 local M = {}
 
-M.style = "pokemon"
+M.style = "advanced"
 
 ---@type table<string, snacks.dashboard.Section>
 M.examples = {}

@@ -1,8 +1,23 @@
 # 🍿 dashboard
 
+## ✨ Features
+
+- declarative configuration
+- flexible layouts
+- multiple vertical panes
+- built-in sections:
+  - **header**: show a header
+  - **keys**: show keymaps
+  - **projects**: show recent projects
+  - **recent_files**: show recent files
+  - **session**: session support
+  - **startup**: startup time (lazy.nvim)
+  - **terminal**: colored terminal output
+- super fast `terminal` sections with autmomatic caching
+
 ## 🚀 Usage
 
-The dashboard comes with a set of default sections, that
+The dashboards comes with a set of default sections, that
 can be customized with `opts.preset` or
 fully replaced with `opts.sections`.
 
@@ -52,9 +67,9 @@ A section can have an `action` property that will be executed as:
 },
 ```
 
-### Section text
+### Item text
 
-Every section should have a `text` property with an array of `snacks.dashboard.Text` objects.
+Every item should have a `text` property with an array of `snacks.dashboard.Text` objects.
 If the `text` property is not provided, the `snacks.dashboard.Config.formats`
 will be used to generate the text.
 
