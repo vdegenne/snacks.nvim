@@ -199,7 +199,6 @@ In the example below, both sections are equivalent.
     },
     { section = "startup" },
   },
-  debug = true,
 }
 ```
 

@@ -171,6 +171,8 @@ function M.md(str, opts)
     opts.extract_comment = true
   end
   str = str:gsub("\n%s*%-%-%s*stylua: ignore\n", "\n")
+  str = str:gsub("\n%s*debug = false,\n", "\n")
+  str = str:gsub("\n%s*debug = true,\n", "\n")
   local comments = {} ---@type string[]
   local lines = vim.split(str, "\n", { plain = true })
 
