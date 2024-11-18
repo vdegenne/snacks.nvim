@@ -1,6 +1,6 @@
 local M = {}
 
-M.style = "pokemon"
+M.style = "compact_files"
 
 ---@type table<string, snacks.dashboard.Section>
 M.examples = {}
@@ -71,6 +71,17 @@ M.examples.files = {
     { section = "keys", gap = 1 },
     { icon = " ", title = "Recent Files", section = "recent_files", indent = 2, padding = { 2, 2 } },
     { icon = " ", title = "Projects", section = "projects", indent = 2, padding = 2 },
+    { section = "startup" },
+  },
+}
+
+-- A more compact version of the `files` example
+M.examples.compact_files = {
+  sections = {
+    { section = "header" },
+    { icon = " ", title = "Keymaps", section = "keys", indent = 2, padding = 1 },
+    { icon = " ", title = "Recent Files", section = "recent_files", indent = 2, padding = 1 },
+    { icon = " ", title = "Projects", section = "projects", indent = 2, padding = 1 },
     { section = "startup" },
   },
 }
