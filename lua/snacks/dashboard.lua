@@ -257,15 +257,10 @@ end
 
 function D:init()
   vim.api.nvim_win_set_buf(self.win, self.buf)
-
   vim.o.ei = "all"
   local style = Snacks.config.styles.dashboard
-  for k, v in pairs(style.wo or {}) do
-    vim.api.nvim_set_option_value(k, v, { scope = "local", win = self.win })
-  end
-  for k, v in pairs(style.bo or {}) do
-    vim.api.nvim_set_option_value(k, v, { buf = self.buf })
-  end
+  Snacks.util.wo(self.win, style.wo)
+  Snacks.util.bo(self.buf, style.bo)
   vim.o.ei = ""
   if self:is_float() then
     vim.keymap.set("n", "<esc>", "<cmd>bd<cr>", { silent = true, buffer = self.buf })
@@ -927,11 +922,7 @@ function M.sections.terminal(opts)
           width = width,
           win = self.win,
         })
-        vim.api.nvim_set_option_value(
-          "winhighlight",
-          "NormalFloat:SnacksDashboardTerminal",
-          { scope = "local", win = win }
-        )
+        Snacks.util.wo(win, { winhighlight = "NormalFloat:SnacksDashboardTerminal" })
         local close = vim.schedule_wrap(function()
           pcall(vim.api.nvim_win_close, win, true)
           pcall(vim.api.nvim_buf_delete, buf, { force = true })
