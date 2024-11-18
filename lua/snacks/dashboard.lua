@@ -136,6 +136,7 @@ local defaults = {
       section = "terminal",
       pane = 2,
       cmd = "colorscript -e square",
+      -- cmd = "figlet Neovim | lolcat",
       height = 5,
       padding = 1,
     },
@@ -175,7 +176,7 @@ local defaults = {
     },
     { section = "startup" },
   },
-  debug = false,
+  debug = true,
 }
 
 -- The default style for the dashboard.
@@ -250,9 +251,24 @@ function M.open(opts)
   self.opts = Snacks.config.get("dashboard", defaults, opts) --[[@as snacks.dashboard.Opts]]
   self.buf = self.opts.buf or vim.api.nvim_create_buf(false, true)
   self.win = self.opts.win or Snacks.win({ style = "dashboard", buf = self.buf, enter = true }).win --[[@as number]]
+  self._stats = {}
+  self:trace("dashboard")
+  self:trace("init")
   self:init()
+  self:trace() -- init
   self:render()
+  self:trace() -- dashboard
+  if self.opts.debug then
+    Snacks.debug.stats({ min = 0.2 })
+  end
   return self
+end
+
+---@param name? string
+function D:trace(name)
+  if self.opts.debug then
+    Snacks.debug.trace(name)
+  end
 end
 
 function D:init()
@@ -475,12 +491,10 @@ function D:resolve(item, results, parent)
       table.insert(results, { title = item.title, icon = item.icon, pane = item.pane })
     end
     if item.section then -- add section items
-      local start = uv.hrtime()
+      self:trace(item.section)
       local items = M.sections[item.section](item) ---@type snacks.dashboard.Section?
       self:resolve(items, results, item)
-      if self.opts.debug then
-        Snacks.notify("Resolved `" .. item.section .. "` in **" .. (uv.hrtime() - start) / 1e6 .. "ms**")
-      end
+      self:trace()
     end
     if item[1] then -- add child items
       for _, child in ipairs(item) do
@@ -513,7 +527,9 @@ function D:padding(item)
 end
 
 function D:fire(event)
+  self:trace(event)
   vim.api.nvim_exec_autocmds("User", { pattern = "SnacksDashboard" .. event, modeline = false })
+  self:trace()
 end
 
 function D:on(event, cb)
@@ -554,7 +570,7 @@ function D:find(pos, from)
 end
 
 function D:render()
-  local start = uv.hrtime()
+  self:trace("render")
   self:fire("RenderPre")
   self._size = self:size()
 
@@ -562,7 +578,11 @@ function D:render()
   local extmarks = {} ---@type {row:number, col:number, opts:vim.api.keyset.set_extmark}[]
   local max_panes = math.floor((self._size.width + self.opts.pane_gap) / (self.opts.width + self.opts.pane_gap))
 
+  self:trace("resolve")
   self.items = self:resolve(self.opts.sections)
+  self:trace()
+
+  self:trace("layout")
   local panes = {} ---@type snacks.dashboard.Item[][]
   for _, item in ipairs(self.items) do
     local pane = item.pane or 1
@@ -613,6 +633,7 @@ function D:render()
       end
     end
   end
+  self:trace()
 
   -- vertical centering
   self.row = self.opts.row or math.max(math.floor((self._size.height - #lines) / 2), 0)
@@ -660,9 +681,7 @@ function D:render()
     end,
   })
   self:fire("RenderPost")
-  if self.opts.debug then
-    Snacks.notify("Rendered dashboard in **" .. (uv.hrtime() - start) / 1e6 .. "ms**")
-  end
+  self:trace()
 end
 
 --- Check if the dashboard should be opened
@@ -775,7 +794,12 @@ function M.sections.recent_files(opts)
     for _, file in ipairs(vim.v.oldfiles) do
       file = vim.fs.normalize(file, { _fast = true, expand_env = false })
       if file:sub(1, #root) == root and uv.fs_stat(file) then
-        ret[#ret + 1] = { file = file, icon = M.icon(file), action = ":e " .. file, autokey = true }
+        ret[#ret + 1] = {
+          file = file,
+          icon = M.icon(file),
+          action = ":e " .. file,
+          autokey = true,
+        }
         if #ret >= limit then
           break
         end
