@@ -272,6 +272,11 @@ function D:trace(name)
 end
 
 function D:init()
+  if self.opts.debug then
+    self:trace("icon-provider")
+    M.icon("init.lua")
+    self:trace()
+  end
   vim.api.nvim_win_set_buf(self.win, self.buf)
   vim.o.ei = "all"
   local style = Snacks.config.styles.dashboard
