@@ -242,7 +242,8 @@ Snacks.util.set_hl(links, { prefix = "SnacksDashboard", default = true })
 ---@field items snacks.dashboard.Item[]
 ---@field row? number
 ---@field col? number
----@field panes? number
+---@field panes? snacks.dashboard.Item[][]
+---@field lines? string[]
 local D = {}
 
 ---@param opts? snacks.dashboard.Opts
@@ -257,7 +258,7 @@ function M.open(opts)
   self:trace("init")
   self:init()
   self:trace() -- init
-  self:render()
+  self:update()
   self:trace() -- dashboard
   if self.opts.debug then
     Snacks.debug.stats({ min = 0.2 })
@@ -267,9 +268,7 @@ end
 
 ---@param name? string
 function D:trace(name)
-  if self.opts.debug then
-    Snacks.debug.trace(name)
-  end
+  return self.opts.debug and Snacks.debug.trace(name)
 end
 
 function D:init()
@@ -280,9 +279,8 @@ function D:init()
   end
   vim.api.nvim_win_set_buf(self.win, self.buf)
   vim.o.ei = "all"
-  local style = Snacks.config.styles.dashboard
-  Snacks.util.wo(self.win, style.wo)
-  Snacks.util.bo(self.buf, style.bo)
+  Snacks.util.wo(self.win, Snacks.config.styles.dashboard.wo)
+  Snacks.util.bo(self.buf, Snacks.config.styles.dashboard.bo)
   vim.o.ei = ""
   if self:is_float() then
     vim.keymap.set("n", "<esc>", "<cmd>bd<cr>", { silent = true, buffer = self.buf })
@@ -291,11 +289,9 @@ function D:init()
   vim.api.nvim_create_autocmd("WinResized", {
     buffer = self.buf,
     callback = function(ev)
-      local win = tonumber(ev.match)
-      -- only render if the window is the same as the dashboard window
-      -- and the size has changed
-      if win == self.win and not vim.deep_equal(self._size, self:size()) then
-        self:render()
+      -- only re-render if the same window and size has changed
+      if tonumber(ev.match) == self.win and not vim.deep_equal(self._size, self:size()) then
+        self:update()
       end
     end,
   })
@@ -392,6 +388,7 @@ function D:align(item, width, align)
   end
 end
 
+--- Create a block from a list of texts (possibly with newlines)
 ---@param texts snacks.dashboard.Text[]|snacks.dashboard.Text|string
 function D:block(texts)
   texts = type(texts) == "string" and { { texts } } or texts
@@ -479,7 +476,7 @@ function D:resolve(item, results, parent)
   if not item then
     return results
   end
-  if type(item) == "table" and parent then
+  if type(item) == "table" and parent then -- inherit parent properties
     for _, prop in ipairs({ "indent", "align", "pane" }) do
       item[prop] = item[prop] or parent[prop]
     end
@@ -546,11 +543,11 @@ end
 ---@param from? {[1]:number, [2]:number}
 function D:find(pos, from)
   from = from or pos
-  local line = vim.api.nvim_buf_get_lines(self.buf, pos[1] - 1, pos[1], false)[1] or ""
+  local line = self.lines[pos[1]]
   local char = vim.fn.charidx(line, pos[2]) -- map col to charachter index
 
   local pane = math.floor((char - self.col) / (self.opts.width + self.opts.pane_gap)) + 1
-  pane = math.max(1, math.min(pane, self.panes))
+  pane = math.max(1, math.min(pane, #self.panes))
   if pos[1] == from[1] then
     if pos[2] == from[2] - 1 then
       pane = pane - 1
@@ -558,7 +555,7 @@ function D:find(pos, from)
       pane = pane + 1
     end
   end
-  pane = math.max(1, math.min(pane, self.panes))
+  pane = math.max(1, math.min(pane, #self.panes))
 
   local ret ---@type snacks.dashboard.Item?
   for _, item in ipairs(self.items) do
@@ -575,94 +572,70 @@ function D:find(pos, from)
   return ret
 end
 
-function D:render()
-  self:trace("render")
-  self:fire("RenderPre")
-  self._size = self:size()
-
-  local lines = {} ---@type string[]
-  local extmarks = {} ---@type {row:number, col:number, opts:vim.api.keyset.set_extmark}[]
-  local max_panes = math.floor((self._size.width + self.opts.pane_gap) / (self.opts.width + self.opts.pane_gap))
-
-  self:trace("resolve")
-  self.items = self:resolve(self.opts.sections)
-  self:trace()
-
-  local autokeys = vim.split(self.opts.autokeys:gsub("[hjkl]", ""), "")
-  ---@param key? string
-  local function use_key(key)
-    key = key or table.remove(autokeys, 1)
-    autokeys = vim.tbl_filter(function(k)
-      return k ~= key
-    end, autokeys)
-    return key
-  end
-
+-- Layout in panes
+function D:layout()
   self:trace("layout")
-  local panes = {} ---@type snacks.dashboard.Item[][]
+  local max_panes = math.floor((self._size.width + self.opts.pane_gap) / (self.opts.width + self.opts.pane_gap))
+  self.panes = {} ---@type snacks.dashboard.Item[][]
   for _, item in ipairs(self.items) do
-    if item.key and not item.autokey then
-      use_key(item.key)
-    end
     local pane = item.pane or 1
     pane = math.fmod(pane - 1, max_panes) + 1 -- distribute panes evenly
-    panes[pane] = panes[pane] or {}
-    table.insert(panes[pane], item)
+    self.panes[pane] = self.panes[pane] or {}
+    table.insert(self.panes[pane], item)
   end
-  self.panes = math.max(unpack(vim.tbl_keys(panes))) or 1
+  for p = 1, math.max(unpack(vim.tbl_keys(self.panes))) or 1 do
+    self.panes[p] = self.panes[p] or {}
+  end
+  self:trace()
+end
 
+-- Format and render the dashboard
+function D:render()
+  self:trace("render")
+  -- horizontal position
   self.col = self.opts.col
-    or math.floor(self._size.width - (self.opts.width * #panes + self.opts.pane_gap * (#panes - 1))) / 2
+    or math.floor(self._size.width - (self.opts.width * #self.panes + self.opts.pane_gap * (#self.panes - 1))) / 2
 
-  for p = 1, self.panes do
+  self:trace("format")
+  self.lines = {} ---@type string[]
+  local extmarks = {} ---@type {row:number, col:number, opts:vim.api.keyset.set_extmark}[]
+  for p, pane in ipairs(self.panes) do
     local indent = (" "):rep(p == 1 and self.col or self.opts.pane_gap)
     local row = 0
-    for _, item in ipairs(panes[p] or {}) do
-      if item.autokey then
-        item.key = use_key()
-      end
+    for _, item in ipairs(pane or {}) do
       for l, line in ipairs(self:format(item)) do
         row = row + 1
-        if p > 1 and not lines[row] then
-          lines[row] = (" "):rep(self.col + (self.opts.width + self.opts.pane_gap) * (p - 1))
+        if p > 1 and not self.lines[row] then -- add lines for empty panes
+          self.lines[row] = (" "):rep(self.col + (self.opts.width + self.opts.pane_gap) * (p - 1))
         else
-          lines[row] = (lines[row] or "") .. indent
+          self.lines[row] = (self.lines[row] or "") .. indent
         end
         if l == 1 then
-          item._ = { pane = p, row = row, col = #lines[row] - 1 }
+          item._ = { pane = p, row = row, col = #self.lines[row] - 1 }
         end
         ---@cast line snacks.dashboard.Line
         for _, text in ipairs(line) do
-          lines[row] = lines[row] .. text[1]
+          self.lines[row] = self.lines[row] .. text[1]
           if text.hl then
             table.insert(extmarks, {
               row = row - 1,
-              col = #lines[row] - #text[1],
-              opts = { hl_group = hl_groups[text.hl] or text.hl, end_col = #lines[row] },
+              col = #self.lines[row] - #text[1],
+              opts = { hl_group = hl_groups[text.hl] or text.hl, end_col = #self.lines[row] },
             })
           end
         end
       end
-      if item.key then
-        vim.keymap.set("n", item.key, function()
-          self:action(item.action)
-        end, { buffer = self.buf, nowait = not item.autokey, desc = "Dashboard action" })
-      end
     end
   end
-  self:trace()
+  self:trace() -- format
 
-  -- vertical centering
-  self.row = self.opts.row or math.max(math.floor((self._size.height - #lines) / 2), 0)
+  -- vertical position
+  self.row = self.opts.row or math.max(math.floor((self._size.height - #self.lines) / 2), 0)
   for _ = 1, self.row do
-    table.insert(lines, 1, "")
+    table.insert(self.lines, 1, "")
   end
 
-  -- set lines
-  vim.bo[self.buf].modifiable = true
-  vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, lines)
-  vim.bo[self.buf].modifiable = false
-
+  -- fix item positions
   for _, item in ipairs(self.items) do
     if item._ then
       item._.row = item._.row + self.row
@@ -672,11 +645,55 @@ function D:render()
     end
   end
 
+  self:trace("lines/extmarks")
+  -- set lines
+  vim.bo[self.buf].modifiable = true
+  vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, self.lines)
+  vim.bo[self.buf].modifiable = false
+
   -- extmarks
   vim.api.nvim_buf_clear_namespace(self.buf, M.ns, 0, -1)
   for _, extmark in ipairs(extmarks) do
     vim.api.nvim_buf_set_extmark(self.buf, M.ns, extmark.row + self.row, extmark.col, extmark.opts)
   end
+  self:trace() -- lines/extmarks
+  self:trace() -- render
+end
+
+function D:keys()
+  self:trace("keys")
+  local autokeys = self.opts.autokeys:gsub("[hjklq]", "")
+  for _, item in ipairs(self.items) do
+    if item.key and not item.autokey then
+      autokeys = autokeys:gsub(item.key, "", 1)
+    end
+  end
+  for _, item in ipairs(self.items) do
+    if item.autokey then
+      item.key, autokeys = autokeys:sub(1, 1), autokeys:sub(2)
+    end
+    if item.key then
+      vim.keymap.set("n", item.key, function()
+        self:action(item.action)
+      end, { buffer = self.buf, nowait = not item.autokey, desc = "Dashboard action" })
+    end
+  end
+  self:trace()
+end
+
+function D:update()
+  self:trace("update")
+
+  self:fire("UpdatePre")
+  self._size = self:size()
+
+  self:trace("items")
+  self.items = self:resolve(self.opts.sections)
+  self:trace() -- items
+
+  self:layout()
+  self:keys()
+  self:render()
 
   -- actions on enter
   vim.keymap.set("n", "<cr>", function()
@@ -692,13 +709,13 @@ function D:render()
     callback = function()
       local item = self:find(vim.api.nvim_win_get_cursor(self.win), last)
       if item then
-        last = { item._.row, (lines[item._.row]:find("[%w%d%p]", item._.col + 1) or item._.col + 1) - 1 }
+        last = { item._.row, (self.lines[item._.row]:find("[%w%d%p]", item._.col + 1) or item._.col + 1) - 1 }
       end
       vim.api.nvim_win_set_cursor(self.win, last)
     end,
   })
-  self:fire("RenderPost")
-  self:trace()
+  self:fire("UpdatePost")
+  self:trace() -- update
 end
 
 --- Check if the dashboard should be opened
@@ -950,6 +967,7 @@ function M.sections.terminal(opts)
     end
     return {
       render = function(_, pos)
+        self:trace("terminal.render")
         local win = vim.api.nvim_open_win(buf, false, {
           bufpos = { pos[1] - 1, pos[2] + 1 },
           col = opts.indent or 0,
@@ -970,7 +988,8 @@ function M.sections.terminal(opts)
           return true
         end)
         vim.api.nvim_create_autocmd("BufWipeout", { buffer = self.buf, callback = close })
-        self:on("RenderPre", close)
+        self:on("UpdatePre", close)
+        self:trace()
       end,
       text = ("\n"):rep(height - 1),
     }
