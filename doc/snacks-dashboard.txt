@@ -3,11 +3,12 @@
 ==============================================================================
 Table of Contents                         *snacks-dashboard-table-of-contents*
 
-1. Usage                                              |snacks-dashboard-usage|
+1. Features                                        |snacks-dashboard-features|
+2. Usage                                              |snacks-dashboard-usage|
   - Section actions                   |snacks-dashboard-usage-section-actions|
-  - Section text                         |snacks-dashboard-usage-section-text|
-2. Config                                            |snacks-dashboard-config|
-3. Examples                                        |snacks-dashboard-examples|
+  - Item text                               |snacks-dashboard-usage-item-text|
+3. Config                                            |snacks-dashboard-config|
+4. Examples                                        |snacks-dashboard-examples|
   - advanced                              |snacks-dashboard-examples-advanced|
   - chafa                                    |snacks-dashboard-examples-chafa|
   - compact_files                    |snacks-dashboard-examples-compact_files|
@@ -15,10 +16,10 @@ Table of Contents                         *snacks-dashboard-table-of-contents*
   - files                                    |snacks-dashboard-examples-files|
   - pokemon                                |snacks-dashboard-examples-pokemon|
   - startify                              |snacks-dashboard-examples-startify|
-4. Styles                                            |snacks-dashboard-styles|
+5. Styles                                            |snacks-dashboard-styles|
   - dashboard                              |snacks-dashboard-styles-dashboard|
-5. Types                                              |snacks-dashboard-types|
-6. Module                                            |snacks-dashboard-module|
+6. Types                                              |snacks-dashboard-types|
+7. Module                                            |snacks-dashboard-module|
   - Snacks.dashboard()            |snacks-dashboard-module-snacks.dashboard()|
   - Snacks.dashboard.have_plugin()|snacks-dashboard-module-snacks.dashboard.have_plugin()|
   - Snacks.dashboard.icon()  |snacks-dashboard-module-snacks.dashboard.icon()|
@@ -32,13 +33,30 @@ Table of Contents                         *snacks-dashboard-table-of-contents*
   - Snacks.dashboard.sections.startup()|snacks-dashboard-module-snacks.dashboard.sections.startup()|
   - Snacks.dashboard.sections.terminal()|snacks-dashboard-module-snacks.dashboard.sections.terminal()|
   - Snacks.dashboard.setup()|snacks-dashboard-module-snacks.dashboard.setup()|
-7. Links                                              |snacks-dashboard-links|
+8. Links                                              |snacks-dashboard-links|
 
 ==============================================================================
-1. Usage                                              *snacks-dashboard-usage*
+1. Features                                        *snacks-dashboard-features*
 
-The dashboard comes with a set of default sections, that can be customized with
-`opts.preset` or fully replaced with `opts.sections`.
+- declarative configuration
+- flexible layouts
+- multiple vertical panes
+- built-in sections:
+    - **header**show a header
+    - **keys**show keymaps
+    - **projects**show recent projects
+    - **recent_files**show recent files
+    - **session**session support
+    - **startup**startup time (lazy.nvim)
+    - **terminal**colored terminal output
+- super fast `terminal` sections with autmomatic caching
+
+
+==============================================================================
+2. Usage                                              *snacks-dashboard-usage*
+
+The dashboards comes with a set of default sections, that can be customized
+with `opts.preset` or fully replaced with `opts.sections`.
 
 The default preset comes with support for:
 
@@ -88,9 +106,9 @@ A section can have an `action` property that will be executed as:
 <
 
 
-SECTION TEXT                             *snacks-dashboard-usage-section-text*
+ITEM TEXT                                   *snacks-dashboard-usage-item-text*
 
-Every section should have a `text` property with an array of
+Every item should have a `text` property with an array of
 `snacks.dashboard.Text` objects. If the `text` property is not provided, the
 `snacks.dashboard.Config.formats` will be used to generate the text.
 
@@ -119,7 +137,7 @@ In the example below, both sections are equivalent.
 
 
 ==============================================================================
-2. Config                                            *snacks-dashboard-config*
+3. Config                                            *snacks-dashboard-config*
 
 >lua
     ---@class snacks.dashboard.Config
@@ -184,7 +202,7 @@ In the example below, both sections are equivalent.
 
 
 ==============================================================================
-3. Examples                                        *snacks-dashboard-examples*
+4. Examples                                        *snacks-dashboard-examples*
 
 
 ADVANCED                                  *snacks-dashboard-examples-advanced*
@@ -345,7 +363,7 @@ Similar to the Vim Startify dashboard
 
 
 ==============================================================================
-4. Styles                                            *snacks-dashboard-styles*
+5. Styles                                            *snacks-dashboard-styles*
 
 
 DASHBOARD                                  *snacks-dashboard-styles-dashboard*
@@ -385,7 +403,7 @@ Snacks.dashboard()`
 
 
 ==============================================================================
-5. Types                                              *snacks-dashboard-types*
+6. Types                                              *snacks-dashboard-types*
 
 >lua
     ---@class snacks.dashboard.Item
@@ -436,7 +454,7 @@ Snacks.dashboard()`
 
 
 ==============================================================================
-6. Module                                            *snacks-dashboard-module*
+7. Module                                            *snacks-dashboard-module*
 
 
 `Snacks.dashboard()`                                      *Snacks.dashboard()*
@@ -571,7 +589,7 @@ Check if the dashboard should be opened
 <
 
 ==============================================================================
-7. Links                                              *snacks-dashboard-links*
+8. Links                                              *snacks-dashboard-links*
 
 1. *image*: https://github.com/user-attachments/assets/bbf4d2cd-6fc5-4122-a462-0ca59ba89545
 2. *image*: https://github.com/user-attachments/assets/e498ef8f-83ce-4917-a720-8cb31d98ecec
