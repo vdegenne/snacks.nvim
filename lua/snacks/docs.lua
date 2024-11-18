@@ -26,6 +26,16 @@ local query = vim.treesitter.query.parse(
         (string content: (string_content) @style_name)
         (table_constructor) @style_config)
     ) @style
+
+    ;; examples
+    (assignment_statement
+      (variable_list
+        name: (dot_index_expression
+          field: (identifier) @example_name) 
+          @_en (#lua-match? @_en "^M%.examples%.%w+"))
+      (expression_list
+        value: (table_constructor) @example_config)
+    ) @example
   ]]
 )
 
@@ -46,6 +56,7 @@ local query = vim.treesitter.query.parse(
 ---@field mod? string
 ---@field methods {name: string, args: string, comment?: string, types?: string, type: "method"|"function"}[]
 ---@field types string[]
+---@field examples table<string, string>
 ---@field styles {name:string, opts:string, comment?:string}[]
 
 ---@param lines string[]
@@ -123,6 +134,7 @@ function M.extract(lines)
       return not c:find("@private")
     end, parse.comments),
     styles = {},
+    examples = {},
   }
 
   for _, c in ipairs(parse.captures) do
@@ -144,6 +156,8 @@ function M.extract(lines)
       end
     elseif c.name == "style" then
       table.insert(ret.styles, { name = c.fields.name, opts = c.fields.config, comment = c.comment })
+    elseif c.name == "example" then
+      ret.examples[c.fields.name] = c.comment .. "\n" .. c.fields.config
     end
   end
 
@@ -197,6 +211,16 @@ function M.md(str, opts)
   return vim.trim(table.concat(ret, "\n")) .. "\n"
 end
 
+function M.examples(name)
+  local fname = ("docs/examples/%s.lua"):format(name)
+  if not vim.uv.fs_stat(fname) then
+    return {}
+  end
+  local lines = vim.fn.readfile(fname)
+  local info = M.extract(lines)
+  return info.examples
+end
+
 ---@param name string
 ---@param info snacks.docs.Info
 function M.render(name, info)
@@ -208,6 +232,18 @@ function M.render(name, info)
   local prefix = ("Snacks.%s"):format(name)
   if name == "init" then
     prefix = "Snacks"
+  end
+
+  local examples = M.examples(name)
+  local names = vim.tbl_keys(examples)
+  table.sort(names)
+  if not vim.tbl_isempty(examples) then
+    add("## 🚀 Examples\n")
+    for _, n in ipairs(names) do
+      local example = examples[n]
+      add(("### `%s`\n"):format(n))
+      add(M.md(example))
+    end
   end
 
   if info.config then
