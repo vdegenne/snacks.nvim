@@ -9,6 +9,8 @@
 ---@field lazygit snacks.lazygit
 ---@field notifier snacks.notifier
 ---@field notify snacks.notify
+---@field options snacks.options
+---@field parser snacks.parser
 ---@field quickfile snacks.quickfile
 ---@field health snacks.health
 ---@field profiler snacks.profiler
