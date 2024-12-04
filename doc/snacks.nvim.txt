@@ -1,4 +1,10 @@
+<<<<<<< HEAD
 *snacks.nvim.txt*           For Neovim           Last change: 2024 December 09
+||||||| parent of 2b06d0a (chore(build): auto-generate docs)
+*snacks.nvim.txt*           For Neovim           Last change: 2024 December 03
+=======
+*snacks.nvim.txt*           For Neovim           Last change: 2024 December 04
+>>>>>>> 2b06d0a (chore(build): auto-generate docs)
 
 ==============================================================================
 Table of Contents                              *snacks.nvim-table-of-contents*
