@@ -20,6 +20,7 @@ _G.Snacks = M
 local config = {
   bigfile = { enabled = false },
   dashboard = { enabled = false },
+  indent = { enabled = false },
   notifier = { enabled = false },
   quickfile = { enabled = false },
   statuscolumn = { enabled = false },
@@ -107,7 +108,7 @@ function M.setup(opts)
 
   local events = {
     BufReadPre = { "bigfile" },
-    BufReadPost = { "quickfile" },
+    BufReadPost = { "quickfile", "indent" },
     LspAttach = { "words" },
     UIEnter = { "dashboard" },
   }
