@@ -22,6 +22,7 @@ local M = setmetatable({}, {
 ---@field bg? string
 ---@field blend? number
 ---@field transparent? boolean defaults to true
+---@field win? snacks.win.Config overrides the backdrop window config
 
 ---@class snacks.win.Config: vim.api.keyset.win_config
 ---@field style? string merges with config from `Snacks.config.styles[style]`
@@ -526,7 +527,7 @@ function M:drop()
     return
   end
 
-  local bg, winblend = backdrop.bg, backdrop.blend
+  local bg, winblend = backdrop.bg or "#000000", backdrop.blend
   if not backdrop.transparent then
     bg = Snacks.util.blend(Snacks.util.color("Normal", "bg"), bg, winblend / 100)
     winblend = 0
@@ -535,7 +536,7 @@ function M:drop()
   local group = ("SnacksBackdrop_%s"):format(bg:sub(2))
   vim.api.nvim_set_hl(0, group, { bg = bg })
 
-  self.backdrop = M.new({
+  self.backdrop = M.new(M.resolve({
     enter = false,
     backdrop = false,
     relative = "editor",
@@ -553,7 +554,7 @@ function M:drop()
       buftype = "nofile",
       filetype = "snacks_win_backdrop",
     },
-  })
+  }, backdrop.win))
   vim.api.nvim_create_autocmd("WinClosed", {
     group = self.augroup,
     pattern = self.win .. "",
