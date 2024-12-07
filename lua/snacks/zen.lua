@@ -1,8 +1,42 @@
 ---@class snacks.zen
-local M = {}
+---@overload fun(opts: snacks.zen.Config): snacks.win
+local M = setmetatable({}, {
+  __call = function(M, ...)
+    return M.zen(...)
+  end,
+})
 
 ---@class snacks.zen.Config
-local defaults = {}
+local defaults = {
+  -- You can add any `Snacks.toggle` id here.
+  -- Toggle state is restored when the window is closed.
+  -- Toggle config options are NOT merged.
+  ---@type table<string, boolean>
+  toggles = {
+    dim = true,
+    git_signs = false,
+    mini_diff_signs = false,
+    -- diagnostics = false,
+    -- inlay_hints = false,
+  },
+  show = {
+    statusline = false, -- can only be shown when using the global statusline
+    tabline = false,
+  },
+  ---@type snacks.win.Config
+  win = { style = "zen" },
+
+  --- Options for the `Snacks.zen.zoom()`
+  ---@type snacks.zen.Config
+  zoom = {
+    toggles = {},
+    show = { statusline = true, tabline = true },
+    win = {
+      backdrop = false,
+      width = 0, -- full width
+    },
+  },
+}
 
 Snacks.config.style("zen", {
   enter = true,
@@ -10,21 +44,35 @@ Snacks.config.style("zen", {
   minimal = false,
   width = 120,
   height = 0,
-  backdrop = { transparent = true, blend = 20 },
+  backdrop = { transparent = true, blend = 40 },
   keys = { q = false },
   wo = {
     winhighlight = "NormalFloat:Normal",
   },
 })
 
-Snacks.config.style("zoom", {
-  style = "zen",
-  backdrop = false,
-  width = 0,
-})
+---@param opts? {statusline: boolean, tabline: boolean}
+local function get_main(opts)
+  opts = opts or {}
+  local bottom = opts.statusline and (vim.o.cmdheight + (vim.o.laststatus == 3 and 1 or 0)) or 0
+  local top = opts.tabline
+      and ((vim.o.showtabline == 2 or (vim.o.showtabline == 1 and #vim.api.nvim_list_tabpages() > 1)) and 1 or 0)
+    or 0
+  ---@class snacks.zen.Main values are 0-indexed
+  local ret = {
+    width = vim.o.columns,
+    row = top,
+    height = vim.o.lines - top - bottom,
+  }
+  return ret
+end
 
----@param opts? snacks.win.Config
+---@param opts? snacks.zen.Config
 function M.zen(opts)
+  local toggles = opts and opts.toggles
+  opts = Snacks.config.get("zen", defaults, opts)
+  opts.toggles = toggles or opts.toggles
+
   -- close if already open
   if vim.w[vim.api.nvim_get_current_win()].snacks_zen then
     vim.cmd("close")
@@ -33,9 +81,47 @@ function M.zen(opts)
 
   local parent_win = vim.api.nvim_get_current_win()
   local buf = vim.api.nvim_get_current_buf()
-  local win = Snacks.win(Snacks.win.resolve({ style = "zen" }, opts, { buf = buf }))
+  local win_opts = Snacks.win.resolve({ style = "zen" }, opts.win, { buf = buf })
 
+  -- calculate window size
+  if win_opts.height == 0 and (opts.show.statusline or opts.show.tabline) then
+    local main = get_main(opts.show)
+    win_opts.row = main.row
+    win_opts.height = function()
+      return get_main(opts.show).height
+    end
+    if type(win_opts.backdrop) == "table" then
+      win_opts.backdrop.win = win_opts.backdrop.win or {}
+      win_opts.backdrop.win.row = win_opts.row
+      win_opts.backdrop.win.height = win_opts.height
+    end
+  end
+
+  -- create window
+  local win = Snacks.win(win_opts)
   vim.w[win.win].snacks_zen = true
+
+  -- set toggle states
+  ---@type {toggle: snacks.toggle.Class, state: unknown}[]
+  local states = {}
+  for id, state in pairs(opts.toggles) do
+    local toggle = Snacks.toggle.get(id)
+    if toggle then
+      table.insert(states, { toggle = toggle, state = toggle:get() })
+      toggle:set(state)
+    end
+  end
+
+  -- restore toggle states when window is closed
+  vim.api.nvim_create_autocmd("WinClosed", {
+    group = win.augroup,
+    pattern = tostring(win.win),
+    callback = vim.schedule_wrap(function()
+      for _, state in ipairs(states) do
+        state.toggle:set(state.state)
+      end
+    end),
+  })
 
   -- update the buffer of the parent window
   -- when the zen buffer changes
@@ -63,29 +149,9 @@ function M.zen(opts)
   return win
 end
 
----@param opts? snacks.win.Config
+---@param opts? snacks.zen.Config
 function M.zoom(opts)
-  opts = Snacks.win.resolve({
-    style = "zoom",
-    col = M.main().col,
-    height = function()
-      return M.main().height
-    end,
-  }, opts)
-  return M.zen(opts)
-end
-
-function M.main()
-  local bottom = vim.o.cmdheight + (vim.o.laststatus == 3 and 1 or 0)
-  local top = (vim.o.showtabline == 2 or (vim.o.showtabline == 1 and #vim.api.nvim_list_tabpages() > 1)) and 1 or 0
-  ---@class snacks.zen.Main values are 0-indexed
-  local ret = {
-    col = 0,
-    width = vim.o.columns,
-    row = top,
-    height = vim.o.lines - top - bottom,
-  }
-  return ret
+  return M.zen(Snacks.config.get("zen", defaults.zoom, opts))
 end
 
 return M
