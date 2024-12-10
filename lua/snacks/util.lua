@@ -33,14 +33,15 @@ function M.set_hl(groups, opts)
   end
 end
 
----@param group string
----@param prop? string
+---@param group string hl group to get color from
+---@param prop? string property to get. Defaults to "fg"
 function M.color(group, prop)
   prop = prop or "fg"
   local hl = vim.api.nvim_get_hl(0, { name = group, link = false })
   return hl[prop] and string.format("#%06x", hl[prop])
 end
 
+--- Set window-local options.
 ---@param win number
 ---@param wo vim.wo
 function M.wo(win, wo)
@@ -49,6 +50,7 @@ function M.wo(win, wo)
   end
 end
 
+--- Set buffer-local options.
 ---@param buf number
 ---@param bo vim.bo
 function M.bo(buf, bo)
@@ -57,8 +59,9 @@ function M.bo(buf, bo)
   end
 end
 
+--- Get an icon from `mini.icons` or `nvim-web-devicons`.
 ---@param name string
----@param cat? string
+---@param cat? string defaults to "file"
 ---@return string, string?
 function M.icon(name, cat)
   local try = {
@@ -116,6 +119,8 @@ function M.blend(fg, bg, alpha)
 end
 
 local transparent ---@type boolean?
+
+--- Check if the colorscheme is transparent.
 function M.is_transparent()
   if transparent == nil then
     transparent = M.color("Normal", "bg") == nil

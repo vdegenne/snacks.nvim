@@ -21,6 +21,8 @@ Snacks.util.blend(fg, bg, alpha)
 
 ### `Snacks.util.bo()`
 
+Set buffer-local options.
+
 ```lua
 ---@param buf number
 ---@param bo vim.bo
@@ -30,8 +32,8 @@ Snacks.util.bo(buf, bo)
 ### `Snacks.util.color()`
 
 ```lua
----@param group string
----@param prop? string
+---@param group string hl group to get color from
+---@param prop? string property to get. Defaults to "fg"
 Snacks.util.color(group, prop)
 ```
 
@@ -55,14 +57,18 @@ Snacks.util.file_encode(str)
 
 ### `Snacks.util.icon()`
 
+Get an icon from `mini.icons` or `nvim-web-devicons`.
+
 ```lua
 ---@param name string
----@param cat? string
+---@param cat? string defaults to "file"
 ---@return string, string?
 Snacks.util.icon(name, cat)
 ```
 
 ### `Snacks.util.is_transparent()`
+
+Check if the colorscheme is transparent.
 
 ```lua
 Snacks.util.is_transparent()
@@ -101,6 +107,8 @@ Snacks.util.set_hl(groups, opts)
 ```
 
 ### `Snacks.util.wo()`
+
+Set window-local options.
 
 ```lua
 ---@param win number
