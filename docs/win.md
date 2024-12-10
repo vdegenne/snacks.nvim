@@ -44,8 +44,8 @@ Snacks.win({
 ---@class snacks.win.Config: vim.api.keyset.win_config
 ---@field style? string merges with config from `Snacks.config.styles[style]`
 ---@field show? boolean Show the window immediately (default: true)
----@field height? number|fun():number Height of the window. Use <1 for relative height. 0 means full height. (default: 0.9)
----@field width? number|fun():number Width of the window. Use <1 for relative width. 0 means full width. (default: 0.9)
+---@field height? number|fun(self:snacks.win):number Height of the window. Use <1 for relative height. 0 means full height. (default: 0.9)
+---@field width? number|fun(self:snacks.win):number Width of the window. Use <1 for relative width. 0 means full width. (default: 0.9)
 ---@field minimal? boolean Disable a bunch of options to make the window minimal (default: true)
 ---@field position? "float"|"bottom"|"top"|"left"|"right"
 ---@field buf? number If set, use this buffer instead of creating a new one
@@ -60,6 +60,7 @@ Snacks.win({
 ---@field on_win? fun(self: snacks.win) Callback after opening the window
 ---@field fixbuf? boolean don't allow other buffers to be opened in this window
 ---@field text? string|string[]|fun():(string[]|string) Initial lines to set in the buffer
+---@field actions? table<string, fun(self: snacks.win):(boolean|string?)> Actions that can be used in key mappings
 {
   show = true,
   fixbuf = true,
@@ -128,7 +129,7 @@ Snacks.win({
 ```lua
 ---@class snacks.win.Keys: vim.api.keyset.keymap
 ---@field [1]? string
----@field [2]? string|fun(self: snacks.win): any
+---@field [2]? string|string[]|fun(self: snacks.win): string?
 ---@field mode? string|string[]
 ```
 
@@ -167,6 +168,14 @@ Snacks.win()
 ---@param opts? snacks.win.Config
 ---@return snacks.win
 Snacks.win.new(opts)
+```
+
+### `win:action()`
+
+```lua
+---@param actions string|string[]
+---@return fun(): boolean|string?
+win:action(actions)
 ```
 
 ### `win:add_padding()`
