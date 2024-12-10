@@ -1,5 +1,10 @@
 local M = {}
 
+M.meta = {
+  desc = "Doc-gen for Snacks",
+  hide = true,
+}
+
 local query = vim.treesitter.query.parse(
   "lua",
   [[
@@ -366,32 +371,20 @@ function M.write(name, lines)
 end
 
 function M._build()
-  local plugins = {} ---@type {name:string, config:boolean}[]
-  local skip = { "docs", "icons" }
-  local files = {} ---@type table<string, string>
+  local plugins = Snacks.meta.get()
 
-  for file, t in vim.fs.dir("lua/snacks", { depth = 1 }) do
-    local name = vim.fn.fnamemodify(file, ":t:r")
-    if not vim.tbl_contains(skip, name) then
-      file = t == "directory" and ("%s/init.lua"):format(file) or file
-      files[name] = file
+  for _, plugin in pairs(plugins) do
+    if plugin.meta.docs then
+      local name = plugin.name
+      print("[gen] " .. name .. ".md")
+      local lines = vim.fn.readfile(plugin.file)
+      local info = M.extract(lines)
+      if name ~= "init" and name ~= "types" then
+        plugin.meta.config = info.config ~= nil
+      end
+      M.write(name, M.render(name, info))
     end
   end
-
-  for name, file in pairs(files) do
-    print(name .. ".md")
-    local path = ("lua/snacks/%s"):format(file)
-    local lines = vim.fn.readfile(path)
-    local info = M.extract(lines)
-    if name ~= "init" and name ~= "types" then
-      table.insert(plugins, { name = name, config = info.config and true or false })
-    end
-    M.write(name, M.render(name, info))
-  end
-
-  table.sort(plugins, function(a, b)
-    return a.name < b.name
-  end)
 
   do
     local path = "lua/snacks/init.lua"
@@ -401,8 +394,8 @@ function M._build()
     local example = table.concat(vim.fn.readfile("docs/examples/init.lua"), "\n")
     lines = {}
     lines[1] = "---@class snacks.Config"
-    for _, plugin in ipairs(plugins) do
-      if plugin.config then
+    for _, plugin in pairs(plugins) do
+      if plugin.meta.config then
         local line = ("---@field %s? snacks.%s.Config"):format(plugin.name, plugin.name)
         table.insert(lines, line)
       end
@@ -428,17 +421,19 @@ function M._build()
   lines[#lines + 1] = ""
   lines[#lines + 1] = "---@class snacks.plugins"
   for _, plugin in ipairs(plugins) do
-    lines[#lines + 1] = ("---@field %s snacks.%s"):format(plugin.name, plugin.name)
+    if plugin.meta.types then
+      lines[#lines + 1] = ("---@field %s snacks.%s"):format(plugin.name, plugin.name)
+    end
   end
   lines[#lines + 1] = ""
   lines[#lines + 1] = "---@class snacks.plugins.Config"
-  for _, plugin in ipairs(plugins) do
-    if plugin.config then
+  for _, plugin in pairs(plugins) do
+    if plugin.meta.config then
       lines[#lines + 1] = ("---@field %s? snacks.%s.Config"):format(plugin.name, plugin.name)
     end
   end
 
-  vim.fn.writefile(lines, "lua/snacks/types.lua")
+  vim.fn.writefile(lines, "lua/snacks/meta/types.lua")
 end
 
 function M.fix_titles()

@@ -11,19 +11,12 @@ local M = setmetatable({}, {
     end
   end,
 })
-
 M.prefix = ""
 
-M.needs_setup = {
-  "bigfile",
-  "dashboard",
-  "indent",
-  "input",
-  "notifier",
-  "quickfile",
-  "scroll",
-  "statuscolumn",
-  "words",
+M.meta = {
+  desc = "Snacks health checks",
+  readme = false,
+  health = false,
 }
 
 function M.check()
@@ -50,28 +43,20 @@ function M.check()
       M.error("`snacks.nvim` not found in lazy")
     end
   end
-  local root = debug.getinfo(1, "S").source:match("@(.*)")
-  root = vim.fn.fnamemodify(root, ":h")
-  for file, t in vim.fs.dir(root, { depth = 1 }) do
-    local name = t == "file" and file:match("(.*)%.lua") or file
-    if name and not vim.tbl_contains({ "init", "docs", "health", "types" }, name) then
-      local mod = Snacks[name] --[[@as {health?: fun()}]]
-      assert(type(mod) == "table", ("`Snacks.%s` not found"):format(name))
-      local opts = Snacks.config[name] or {} --[[@as {enabled?: boolean}]]
-      local needs_setup = vim.tbl_contains(M.needs_setup, name)
-      if needs_setup or mod.health then
-        M.start(("Snacks.%s"):format(name))
-        -- M.prefix = ("`Snacks.%s` "):format(name)
-        if needs_setup then
-          if opts.enabled then
-            M.ok("setup {enabled}")
-          else
-            M.warn("setup {disabled}")
-          end
+  for _, plugin in ipairs(Snacks.meta.get()) do
+    local opts = Snacks.config[plugin.name] or {} --[[@as {enabled?: boolean}]]
+    if plugin.meta.health ~= false and (plugin.meta.needs_setup or plugin.health) then
+      M.start(("Snacks.%s"):format(plugin.name))
+      -- M.prefix = ("`Snacks.%s` "):format(name)
+      if plugin.meta.needs_setup then
+        if opts.enabled then
+          M.ok("setup {enabled}")
+        else
+          M.warn("setup {disabled}")
         end
-        if mod.health then
-          mod.health()
-        end
+      end
+      if plugin.health then
+        plugin.health()
       end
     end
   end

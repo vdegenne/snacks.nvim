@@ -11,7 +11,9 @@
 ---@field gitbrowse snacks.gitbrowse
 ---@field health snacks.health
 ---@field indent snacks.indent
+---@field input snacks.input
 ---@field lazygit snacks.lazygit
+---@field meta snacks.meta
 ---@field notifier snacks.notifier
 ---@field notify snacks.notify
 ---@field profiler snacks.profiler
@@ -35,6 +37,7 @@
 ---@field dim? snacks.dim.Config
 ---@field gitbrowse? snacks.gitbrowse.Config
 ---@field indent? snacks.indent.Config
+---@field input? snacks.input.Config
 ---@field lazygit? snacks.lazygit.Config
 ---@field notifier? snacks.notifier.Config
 ---@field profiler? snacks.profiler.Config
