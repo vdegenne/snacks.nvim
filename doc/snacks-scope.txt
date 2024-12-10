@@ -9,6 +9,11 @@ Table of Contents                             *snacks-scope-table-of-contents*
 4. Module                                                |snacks-scope-module|
   - Snacks.scope.attach()          |snacks-scope-module-snacks.scope.attach()|
   - Snacks.scope.get()                |snacks-scope-module-snacks.scope.get()|
+Scope detection based on treesitter or indent.
+
+The indent-based algorithm is similar to what is used in mini.indentscope
+<https://github.com/echasnovski/mini.indentscope>.
+
 
 ==============================================================================
 1. Setup                                                  *snacks-scope-setup*

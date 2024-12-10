@@ -1,5 +1,14 @@
 # 🍿 zen
 
+Zen mode • distraction-free coding.
+Integrates with `Snacks.toggle` to toggle various UI elements
+and with `Snacks.dim` to dim code out of scope.
+
+Similar plugins:
+
+- [zen-mode.nvim](https://github.com/folke/zen-mode.nvim)
+- [true-zen.nvim](https://github.com/pocco81/true-zen.nvim)
+
 <!-- docgen -->
 
 ## 📦 Setup

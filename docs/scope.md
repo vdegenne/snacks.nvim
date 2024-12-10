@@ -1,5 +1,10 @@
 # 🍿 scope
 
+Scope detection based on treesitter or indent.
+
+The indent-based algorithm is similar to what is used
+in [mini.indentscope](https://github.com/echasnovski/mini.indentscope).
+
 <!-- docgen -->
 
 ## 📦 Setup

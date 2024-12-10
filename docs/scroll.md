@@ -1,5 +1,13 @@
 # 🍿 scroll
 
+Smooth scrolling for Neovim.
+Properly handles `scrolloff` and mouse scrolling.
+
+Similar plugins:
+
+- [mini.animate](https://github.com/echasnovski/mini.animate)
+- [neoscroll.nvim](https://github.com/karb94/neoscroll.nvim)
+
 <!-- docgen -->
 
 ## 📦 Setup

@@ -1,5 +1,13 @@
 # 🍿 animate
 
+Efficient animation library including over 45 easing functions:
+
+- [Emmanuel Oga's easing functions](https://github.com/EmmanuelOga/easing)
+- [Easing functions overview](https://github.com/kikito/tween.lua?tab=readme-ov-file#easing-functions)
+
+There's at any given time at most one timer running, that takes
+care of all active animations, controlled by the `fps` setting.
+
 <!-- docgen -->
 
 ## 📦 Setup

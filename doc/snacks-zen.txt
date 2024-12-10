@@ -12,6 +12,14 @@ Table of Contents                               *snacks-zen-table-of-contents*
   - Snacks.zen()                              |snacks-zen-module-snacks.zen()|
   - Snacks.zen.zen()                      |snacks-zen-module-snacks.zen.zen()|
   - Snacks.zen.zoom()                    |snacks-zen-module-snacks.zen.zoom()|
+Zen mode • distraction-free coding. Integrates with `Snacks.toggle` to toggle
+various UI elements and with `Snacks.dim` to dim code out of scope.
+
+Similar plugins:
+
+- zen-mode.nvim <https://github.com/folke/zen-mode.nvim>
+- true-zen.nvim <https://github.com/pocco81/true-zen.nvim>
+
 
 ==============================================================================
 1. Setup                                                    *snacks-zen-setup*

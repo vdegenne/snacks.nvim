@@ -1,5 +1,12 @@
 # 🍿 indent
 
+Visualize indent guides and scopes based on treesitter or indent.
+
+Similar plugins:
+
+- [indent-blankline.nvim](https://github.com/lukas-reineke/indent-blankline.nvim)
+- [mini.indentscope](https://github.com/echasnovski/mini.indentscope)
+
 <!-- docgen -->
 
 ## 📦 Setup

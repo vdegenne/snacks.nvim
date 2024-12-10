@@ -138,7 +138,7 @@ function M.disable()
   vim.cmd([[redraw!]])
 end
 
--- Animate scope changes
+-- Toggle scope animations
 function M.animate()
   M.animating = not M.animating
 end

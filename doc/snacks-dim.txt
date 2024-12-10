@@ -11,6 +11,14 @@ Table of Contents                               *snacks-dim-table-of-contents*
   - Snacks.dim.disable()              |snacks-dim-module-snacks.dim.disable()|
   - Snacks.dim.enable()                |snacks-dim-module-snacks.dim.enable()|
   - Snacks.dim.on_win()                |snacks-dim-module-snacks.dim.on_win()|
+Focus on the active scope by dimming the rest.
+
+Similar plugins:
+
+- twilight.nvim <https://github.com/folke/twilight.nvim>
+- limelight.vim <https://github.com/junegunn/limelight.vim>
+- goyo.vim <https://github.com/junegunn/goyo.vim>
+
 
 ==============================================================================
 1. Setup                                                    *snacks-dim-setup*
@@ -75,7 +83,7 @@ Table of Contents                               *snacks-dim-table-of-contents*
 
 `Snacks.dim.animate()`                                  *Snacks.dim.animate()*
 
-Animate scope changes
+Toggle scope animations
 
 >lua
     Snacks.dim.animate()

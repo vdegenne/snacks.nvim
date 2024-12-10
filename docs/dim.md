@@ -1,5 +1,13 @@
 # 🍿 dim
 
+Focus on the active scope by dimming the rest.
+
+Similar plugins:
+
+- [twilight.nvim](https://github.com/folke/twilight.nvim)
+- [limelight.vim](https://github.com/junegunn/limelight.vim)
+- [goyo.vim](https://github.com/junegunn/goyo.vim)
+
 <!-- docgen -->
 
 ## 📦 Setup
@@ -58,7 +66,7 @@ Snacks.dim()
 
 ### `Snacks.dim.animate()`
 
-Animate scope changes
+Toggle scope animations
 
 ```lua
 Snacks.dim.animate()
