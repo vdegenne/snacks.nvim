@@ -4,26 +4,38 @@ A collection of small QoL plugins for Neovim.
 
 ## ✨ Features
 
-| Snack                                                                               | Description                                                                                                                                                                             | Setup |
-| ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---: |
-| [bigfile](https://github.com/folke/snacks.nvim/blob/main/docs/bigfile.md)           | Deal with big files                                                                                                                                                                     |  ‼️   |
-| [bufdelete](https://github.com/folke/snacks.nvim/blob/main/docs/bufdelete.md)       | Delete buffers without disrupting window layout                                                                                                                                         |       |
-| [dashboard](https://github.com/folke/snacks.nvim/blob/main/docs/dashboard.md)       | Beautiful declarative dashboards                                                                                                                                                        |  ‼️   |
-| [debug](https://github.com/folke/snacks.nvim/blob/main/docs/debug.md)               | Pretty inspect & backtraces for debugging                                                                                                                                               |       |
-| [git](https://github.com/folke/snacks.nvim/blob/main/docs/git.md)                   | Useful functions for Git                                                                                                                                                                |       |
-| [gitbrowse](https://github.com/folke/snacks.nvim/blob/main/docs/gitbrowse.md)       | Open the repo of the active file in the browser (e.g., GitHub)                                                                                                                          |       |
-| [lazygit](https://github.com/folke/snacks.nvim/blob/main/docs/lazygit.md)           | Open LazyGit in a float, auto-configure colorscheme and integration with Neovim                                                                                                         |       |
-| [notify](https://github.com/folke/snacks.nvim/blob/main/docs/notify.md)             | Utility functions to work with Neovim's `vim.notify`                                                                                                                                    |       |
-| [notifier](https://github.com/folke/snacks.nvim/blob/main/docs/notifier.md)         | Better and prettier `vim.notify`                                                                                                                                                        |  ‼️   |
-| [profiler](https://github.com/folke/snacks.nvim/blob/main/docs/profiler.md)         | Neovim Lua profiler                                                                                                                                                                     |       |
-| [quickfile](https://github.com/folke/snacks.nvim/blob/main/docs/quickfile.md)       | When doing `nvim somefile.txt`, it will render the file as quickly as possible, before loading your plugins.                                                                            |  ‼️   |
-| [rename](https://github.com/folke/snacks.nvim/blob/main/docs/rename.md)             | LSP-integrated file renaming with support for plugins like [neo-tree.nvim](https://github.com/nvim-neo-tree/neo-tree.nvim) and [mini.files](https://github.com/echasnovski/mini.files). |       |
-| [scratch](https://github.com/folke/snacks.nvim/blob/main/docs/scratch.md)           | Scratch buffers                                                                                                                                                                         |       |
-| [statuscolumn](https://github.com/folke/snacks.nvim/blob/main/docs/statuscolumn.md) | Pretty statuscolumn                                                                                                                                                                     |  ‼️   |
-| [terminal](https://github.com/folke/snacks.nvim/blob/main/docs/terminal.md)         | Create and toggle floating/split terminals                                                                                                                                              |       |
-| [toggle](https://github.com/folke/snacks.nvim/blob/main/docs/toggle.md)             | Toggle keymaps integrated with which-key icons / colors                                                                                                                                 |       |
-| [win](https://github.com/folke/snacks.nvim/blob/main/docs/win.md)                   | Easily create and manage floating windows or splits                                                                                                                                     |       |
-| [words](https://github.com/folke/snacks.nvim/blob/main/docs/words.md)               | Auto-show LSP references and quickly navigate between them                                                                                                                              |  ‼️   |
+<!-- toc:start -->
+
+| Snack | Description | Setup |
+| ----- | ----------- | :---: |
+| [animate](https://github.com/folke/snacks.nvim/blob/main/docs/animate.md) | Efficient animations including over 45 easing functions _(library)_ |  |
+| [bigfile](https://github.com/folke/snacks.nvim/blob/main/docs/bigfile.md) | Deal with big files | ‼️ |
+| [bufdelete](https://github.com/folke/snacks.nvim/blob/main/docs/bufdelete.md) | Delete buffers without disrupting window layout |  |
+| [dashboard](https://github.com/folke/snacks.nvim/blob/main/docs/dashboard.md) |  Beautiful declarative dashboards | ‼️ |
+| [debug](https://github.com/folke/snacks.nvim/blob/main/docs/debug.md) | Pretty inspect & backtraces for debugging |  |
+| [dim](https://github.com/folke/snacks.nvim/blob/main/docs/dim.md) | Focus on the active scope by dimming the rest |  |
+| [git](https://github.com/folke/snacks.nvim/blob/main/docs/git.md) | Git utilities |  |
+| [gitbrowse](https://github.com/folke/snacks.nvim/blob/main/docs/gitbrowse.md) | Open the current file, branch, commit, or repo in a browser (e.g. GitHub, GitLab, Bitbucket) |  |
+| [indent](https://github.com/folke/snacks.nvim/blob/main/docs/indent.md) | Indent guides and scopes |  |
+| [input](https://github.com/folke/snacks.nvim/blob/main/docs/input.md) | Better `vim.ui.input` | ‼️ |
+| [lazygit](https://github.com/folke/snacks.nvim/blob/main/docs/lazygit.md) | Open LazyGit in a float, auto-configure colorscheme and integration with Neovim |  |
+| [notifier](https://github.com/folke/snacks.nvim/blob/main/docs/notifier.md) | Pretty `vim.notify` | ‼️ |
+| [notify](https://github.com/folke/snacks.nvim/blob/main/docs/notify.md) | Utility functions to work with Neovim's `vim.notify` |  |
+| [profiler](https://github.com/folke/snacks.nvim/blob/main/docs/profiler.md) | Neovim lua profiler |  |
+| [quickfile](https://github.com/folke/snacks.nvim/blob/main/docs/quickfile.md) | When doing `nvim somefile.txt`, it will render the file as quickly as possible, before loading your plugins. | ‼️ |
+| [rename](https://github.com/folke/snacks.nvim/blob/main/docs/rename.md) | LSP-integrated file renaming with support for plugins like [neo-tree.nvim](https://github.com/nvim-neo-tree/neo-tree.nvim) and [mini.files](https://github.com/echasnovski/mini.files). |  |
+| [scope](https://github.com/folke/snacks.nvim/blob/main/docs/scope.md) | Scope detection based on treesitter or indent _(library)_ |  |
+| [scratch](https://github.com/folke/snacks.nvim/blob/main/docs/scratch.md) | Scratch buffers with a persistent file |  |
+| [scroll](https://github.com/folke/snacks.nvim/blob/main/docs/scroll.md) | Smooth scrolling | ‼️ |
+| [statuscolumn](https://github.com/folke/snacks.nvim/blob/main/docs/statuscolumn.md) | Pretty status column | ‼️ |
+| [terminal](https://github.com/folke/snacks.nvim/blob/main/docs/terminal.md) | Create and toggle floating/split terminals |  |
+| [toggle](https://github.com/folke/snacks.nvim/blob/main/docs/toggle.md) | Toggle keymaps integrated with which-key icons / colors |  |
+| [util](https://github.com/folke/snacks.nvim/blob/main/docs/util.md) | Utility functions for Snacks _(library)_ |  |
+| [win](https://github.com/folke/snacks.nvim/blob/main/docs/win.md) | Create and manage floating windows or splits |  |
+| [words](https://github.com/folke/snacks.nvim/blob/main/docs/words.md) | Auto-show LSP references and quickly navigate between them | ‼️ |
+| [zen](https://github.com/folke/snacks.nvim/blob/main/docs/zen.md) | Zen mode • distraction-free coding |  |
+
+<!-- toc:end -->
 
 ## ⚡️ Requirements
 
@@ -86,12 +98,14 @@ Please refer to the readme of each plugin for their specific configuration.
 ---@field dim? snacks.dim.Config
 ---@field gitbrowse? snacks.gitbrowse.Config
 ---@field indent? snacks.indent.Config
+---@field input? snacks.input.Config
 ---@field lazygit? snacks.lazygit.Config
 ---@field notifier? snacks.notifier.Config
 ---@field profiler? snacks.profiler.Config
 ---@field quickfile? snacks.quickfile.Config
 ---@field scope? snacks.scope.Config
 ---@field scratch? snacks.scratch.Config
+---@field scroll? snacks.scroll.Config
 ---@field statuscolumn? snacks.statuscolumn.Config
 ---@field terminal? snacks.terminal.Config
 ---@field toggle? snacks.toggle.Config
@@ -105,6 +119,7 @@ Please refer to the readme of each plugin for their specific configuration.
   indent = { enabled = false },
   notifier = { enabled = false },
   quickfile = { enabled = false },
+  scroll = { enabled = false },
   statuscolumn = { enabled = false },
   styles = {},
   words = { enabled = false },

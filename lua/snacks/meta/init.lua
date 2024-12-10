@@ -30,14 +30,7 @@ function M.get()
     local name = vim.fn.fnamemodify(file, ":t:r")
     file = t == "directory" and ("%s/init.lua"):format(file) or file
     file = root .. "/" .. file
-    local mod = name == "init"
-        and setmetatable({
-          meta = {
-            desc = "Snacks",
-            hide = true,
-            docs = true,
-          },
-        }, { __index = Snacks })
+    local mod = name == "init" and setmetatable({ meta = { desc = "Snacks", hide = true } }, { __index = Snacks })
       or Snacks[name] --[[@as snacks.meta.Plugin]]
     assert(type(mod) == "table", ("`Snacks.%s` not found"):format(name))
     assert(type(mod.meta) == "table", ("`Snacks.%s.meta` not found"):format(name))

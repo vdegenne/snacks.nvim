@@ -2,7 +2,7 @@
 local M = {}
 
 M.meta = {
-  desc = "Scope detection based on treesitter or indent",
+  desc = "Scope detection based on treesitter or indent _(library)_",
 }
 
 ---@class snacks.scope.Opts: snacks.scope.Config

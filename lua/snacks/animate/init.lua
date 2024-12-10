@@ -7,7 +7,7 @@ local M = setmetatable({}, {
 })
 
 M.meta = {
-  desc = "Animation library",
+  desc = "Efficient animations including over 45 easing functions _(library)_",
 }
 
 -- All easing functions take these parameters:

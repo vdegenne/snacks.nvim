@@ -2,22 +2,6 @@
 
 <!-- docgen -->
 
-## 📦 Setup
-
-```lua
--- lazy.nvim
-{
-  "folke/snacks.nvim",
-  opts = {
-    init = {
-      -- your init configuration comes here
-      -- or leave it empty to use the default settings
-      -- refer to the configuration section below
-    }
-  }
-}
-```
-
 ## ⚙️ Config
 
 ```lua
@@ -65,6 +49,39 @@
 ```
 
 ## 📦 Module
+
+```lua
+---@class Snacks
+---@field animate snacks.animate
+---@field bigfile snacks.bigfile
+---@field bufdelete snacks.bufdelete
+---@field dashboard snacks.dashboard
+---@field debug snacks.debug
+---@field dim snacks.dim
+---@field git snacks.git
+---@field gitbrowse snacks.gitbrowse
+---@field health snacks.health
+---@field indent snacks.indent
+---@field input snacks.input
+---@field lazygit snacks.lazygit
+---@field meta snacks.meta
+---@field notifier snacks.notifier
+---@field notify snacks.notify
+---@field profiler snacks.profiler
+---@field quickfile snacks.quickfile
+---@field rename snacks.rename
+---@field scope snacks.scope
+---@field scratch snacks.scratch
+---@field scroll snacks.scroll
+---@field statuscolumn snacks.statuscolumn
+---@field terminal snacks.terminal
+---@field toggle snacks.toggle
+---@field util snacks.util
+---@field win snacks.win
+---@field words snacks.words
+---@field zen snacks.zen
+Snacks = {}
+```
 
 ### `Snacks.config.example()`
 

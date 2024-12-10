@@ -41,6 +41,8 @@ Table of Contents                              *snacks-util-table-of-contents*
 
 `Snacks.util.bo()`                                          *Snacks.util.bo()*
 
+Set buffer-local options.
+
 >lua
     ---@param buf number
     ---@param bo vim.bo
@@ -51,8 +53,8 @@ Table of Contents                              *snacks-util-table-of-contents*
 `Snacks.util.color()`                                    *Snacks.util.color()*
 
 >lua
-    ---@param group string
-    ---@param prop? string
+    ---@param group string hl group to get color from
+    ---@param prop? string property to get. Defaults to "fg"
     Snacks.util.color(group, prop)
 <
 
@@ -79,15 +81,19 @@ Encodes a string to be used as a file name.
 
 `Snacks.util.icon()`                                      *Snacks.util.icon()*
 
+Get an icon from `mini.icons` or `nvim-web-devicons`.
+
 >lua
     ---@param name string
-    ---@param cat? string
+    ---@param cat? string defaults to "file"
     ---@return string, string?
     Snacks.util.icon(name, cat)
 <
 
 
 `Snacks.util.is_transparent()`                  *Snacks.util.is_transparent()*
+
+Check if the colorscheme is transparent.
 
 >lua
     Snacks.util.is_transparent()
@@ -128,6 +134,8 @@ Ensures the hl groups are always set, even after a colorscheme change.
 
 
 `Snacks.util.wo()`                                          *Snacks.util.wo()*
+
+Set window-local options.
 
 >lua
     ---@param win number

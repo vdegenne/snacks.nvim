@@ -2,7 +2,7 @@
 local M = {}
 
 M.meta = {
-  desc = "Utility functions for Snacks",
+  desc = "Utility functions for Snacks _(library)_",
 }
 
 ---@alias snacks.util.hl table<string, string|vim.api.keyset.highlight>
