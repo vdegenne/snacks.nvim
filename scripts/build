@@ -1,0 +1,5 @@
+#!/bin/env bash
+
+set -e
+
+nvim -u tests/minit.lua --headless +'lua require("snacks.icons.build").build()' +qa
