@@ -1,6 +1,10 @@
 ---@class snacks.scope
 local M = {}
 
+M.meta = {
+  desc = "Scope detection based on treesitter or indent",
+}
+
 ---@class snacks.scope.Opts: snacks.scope.Config
 ---@field buf number
 ---@field pos {[1]:number, [2]:number} -- (1,0) indexed

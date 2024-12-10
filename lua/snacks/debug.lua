@@ -6,6 +6,10 @@ local M = setmetatable({}, {
   end,
 })
 
+M.meta = {
+  desc = "Pretty inspect & backtraces for debugging",
+}
+
 local uv = vim.uv or vim.loop
 local ns = vim.api.nvim_create_namespace("snacks_debug")
 

@@ -6,6 +6,11 @@ local M = setmetatable({}, {
   end,
 })
 
+M.meta = {
+  desc = "Better `vim.ui.input`",
+  needs_setup = true,
+}
+
 ---@class snacks.input.Config
 ---@field enabled? boolean
 ---@field win? snacks.win.Config

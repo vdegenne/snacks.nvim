@@ -13,6 +13,10 @@ local M = setmetatable({}, {
   end,
 })
 
+M.meta = {
+  desc = "Create and manage floating windows or splits",
+}
+
 ---@class snacks.win.Keys: vim.api.keyset.keymap
 ---@field [1]? string
 ---@field [2]? string|string[]|fun(self: snacks.win): string?

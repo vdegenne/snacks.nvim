@@ -6,6 +6,10 @@ local M = setmetatable({}, {
   end,
 })
 
+M.meta = {
+  desc = "Toggle keymaps integrated with which-key icons / colors",
+}
+
 ---@class snacks.toggle.Config
 ---@field icon? string|{ enabled: string, disabled: string }
 ---@field color? string|{ enabled: string, disabled: string }

@@ -1,6 +1,11 @@
 ---@class snacks.scroll
 local M = {}
 
+M.meta = {
+  desc = "Smooth scrolling",
+  needs_setup = true,
+}
+
 ---@alias snacks.scroll.View {topline:number, lnum:number}
 
 ---@class snacks.scroll.State

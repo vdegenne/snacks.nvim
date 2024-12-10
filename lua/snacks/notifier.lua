@@ -6,6 +6,11 @@ local M = setmetatable({}, {
   end,
 })
 
+M.meta = {
+  desc = "Pretty `vim.notify`",
+  needs_setup = true,
+}
+
 local uv = vim.uv or vim.loop
 
 --- Render styles:

@@ -6,6 +6,11 @@ local M = setmetatable({}, {
   end,
 })
 
+M.meta = {
+  desc = " Beautiful declarative dashboards",
+  needs_setup = true,
+}
+
 local uv = vim.uv or vim.loop
 math.randomseed(os.time())
 

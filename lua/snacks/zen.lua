@@ -6,6 +6,10 @@ local M = setmetatable({}, {
   end,
 })
 
+M.meta = {
+  desc = "Zen mode • distraction-free coding",
+}
+
 ---@class snacks.zen.Config
 local defaults = {
   -- You can add any `Snacks.toggle` id here.

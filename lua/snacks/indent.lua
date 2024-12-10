@@ -1,6 +1,10 @@
 ---@class snacks.indent
 local M = {}
 
+M.meta = {
+  desc = "Indent guides and scopes",
+}
+
 M.enabled = false
 M.animating = false
 

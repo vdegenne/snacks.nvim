@@ -1,6 +1,10 @@
 ---@class snacks.util
 local M = {}
 
+M.meta = {
+  desc = "Utility functions for Snacks",
+}
+
 ---@alias snacks.util.hl table<string, string|vim.api.keyset.highlight>
 
 local hl_groups = {} ---@type table<string, vim.api.keyset.highlight>

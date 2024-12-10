@@ -6,6 +6,10 @@ local M = setmetatable({}, {
   end,
 })
 
+M.meta = {
+  desc = "Focus on the active scope by dimming the rest",
+}
+
 ---@class snacks.dim.Config
 local defaults = {
   ---@type snacks.scope.Config

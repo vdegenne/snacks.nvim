@@ -1,6 +1,11 @@
 ---@class snacks.words
 local M = {}
 
+M.meta = {
+  desc = "Auto-show LSP references and quickly navigate between them",
+  needs_setup = true,
+}
+
 ---@private
 ---@alias LspWord {from:{[1]:number, [2]:number}, to:{[1]:number, [2]:number}} 1-0 indexed
 

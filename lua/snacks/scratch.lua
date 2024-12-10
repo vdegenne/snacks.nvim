@@ -8,6 +8,10 @@ local M = setmetatable({}, {
   end,
 })
 
+M.meta = {
+  desc = "Scratch buffers with a persistent file",
+}
+
 ---@class snacks.scratch.File
 ---@field file string full path to the scratch buffer
 ---@field stat uv.fs_stat.result File stat result

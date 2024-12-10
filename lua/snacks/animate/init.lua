@@ -6,6 +6,10 @@ local M = setmetatable({}, {
   end,
 })
 
+M.meta = {
+  desc = "Animation library",
+}
+
 -- All easing functions take these parameters:
 --
 -- t = time     should go from 0 to duration

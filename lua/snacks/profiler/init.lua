@@ -95,6 +95,10 @@ require("snacks")
 ---@field picker snacks.profiler.picker
 local M = {}
 
+M.meta = {
+  desc = "Neovim lua profiler",
+}
+
 local mods = { core = true, loc = true, tracer = true, ui = true, picker = true }
 setmetatable(M, {
   __index = function(t, k)

@@ -2,6 +2,11 @@
 ---@class snacks.bigfile
 local M = {}
 
+M.meta = {
+  desc = "Deal with big files",
+  needs_setup = true,
+}
+
 ---@class snacks.bigfile.Config
 ---@field enabled? boolean
 local defaults = {
