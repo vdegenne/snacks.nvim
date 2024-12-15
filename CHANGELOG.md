@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.12.0](https://github.com/folke/snacks.nvim/compare/v2.11.0...v2.12.0) (2024-12-15)
+
+
+### Features
+
+* **scope:** disable treesitter blocks by default ([8ec6e6a](https://github.com/folke/snacks.nvim/commit/8ec6e6adc5b098674c41005530d1c8af126480ae))
+
+
+### Bug Fixes
+
+* **notifier:** rename style `notification.history` -&gt; `notification_history` ([fd9ef30](https://github.com/folke/snacks.nvim/commit/fd9ef30206185e3dd4d3294c74e2fd0dee9722d1))
+* **scope:** properly caluclate start indent when `cursor=true` for indent scopes. See [#5068](https://github.com/folke/snacks.nvim/issues/5068) ([e63fa7b](https://github.com/folke/snacks.nvim/commit/e63fa7bf05d22f4306c5fff594d48bc01e382238))
+
 ## [2.11.0](https://github.com/folke/snacks.nvim/compare/v2.10.0...v2.11.0) (2024-12-15)
 
 
