@@ -69,13 +69,6 @@ local defaults = {
   },
 }
 
-Snacks.util.set_hl({
-  Title = "FloatTitle",
-  Footer = "FloatFooter",
-  Key = "DiagnosticVirtualTextInfo",
-  Desc = "DiagnosticInfo",
-}, { prefix = "SnacksScratch", default = true })
-
 Snacks.config.style("scratch", {
   width = 100,
   height = 30,
@@ -85,7 +78,6 @@ Snacks.config.style("scratch", {
   -- position = "right",
   zindex = 20,
   wo = { winhighlight = "NormalFloat:Normal" },
-  border = "rounded",
   title_pos = "center",
   footer_pos = "center",
 })
@@ -245,21 +237,6 @@ function M.open(opts)
   end
 
   opts.win.buf = buf
-  local ret = Snacks.win(opts.win)
-  ret.opts.footer = {}
-  table.sort(ret.keys, function(a, b)
-    return a[1] < b[1]
-  end)
-  for _, key in ipairs(ret.keys) do
-    local keymap = vim.fn.keytrans(Snacks.util.keycode(key[1]))
-    table.insert(ret.opts.footer, { " " })
-    table.insert(ret.opts.footer, { " " .. keymap .. " ", "SnacksScratchKey" })
-    table.insert(ret.opts.footer, { " " .. (key.desc or keymap) .. " ", "SnacksScratchDesc" })
-  end
-  table.insert(ret.opts.footer, { " " })
-  for _, t in ipairs(ret.opts.footer) do
-    t[2] = t[2] or "SnacksScratchFooter"
-  end
   if opts.autowrite then
     vim.api.nvim_create_autocmd("BufHidden", {
       group = vim.api.nvim_create_augroup("snacks_scratch_autowrite_" .. buf, { clear = true }),
@@ -269,7 +246,7 @@ function M.open(opts)
       end,
     })
   end
-  return ret:show()
+  return Snacks.win(opts.win):show()
 end
 
 return M
