@@ -61,6 +61,7 @@ local defaults = {
     winhighlight = "Normal:SnacksNormal,NormalNC:SnacksNormalNC,WinBar:SnacksWinBar,WinBarNC:SnacksWinBarNC",
   },
   bo = {},
+  title_pos = "center",
   keys = {
     q = "close",
   },
