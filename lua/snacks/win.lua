@@ -64,6 +64,7 @@ local defaults = {
   keys = {
     q = "close",
   },
+  footer_pos = "center",
   show_footer = false,
 }
 
