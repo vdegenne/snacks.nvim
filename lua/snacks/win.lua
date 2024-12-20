@@ -31,6 +31,7 @@ M.meta = {
 ---@class snacks.win.Config: vim.api.keyset.win_config
 ---@field style? string merges with config from `Snacks.config.styles[style]`
 ---@field show? boolean Show the window immediately (default: true)
+---@field show_footer? boolean Show keys footer (default: false)
 ---@field height? number|fun(self:snacks.win):number Height of the window. Use <1 for relative height. 0 means full height. (default: 0.9)
 ---@field width? number|fun(self:snacks.win):number Width of the window. Use <1 for relative width. 0 means full width. (default: 0.9)
 ---@field minimal? boolean Disable a bunch of options to make the window minimal (default: true)
@@ -63,6 +64,7 @@ local defaults = {
   keys = {
     q = "close",
   },
+  show_footer = false,
 }
 
 Snacks.config.style("float", {
