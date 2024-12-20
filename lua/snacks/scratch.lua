@@ -82,7 +82,6 @@ Snacks.config.style("scratch", {
   -- position = "right",
   zindex = 20,
   wo = { winhighlight = "NormalFloat:Normal" },
-  title_pos = "center",
   show_footer = true,
 })
 
