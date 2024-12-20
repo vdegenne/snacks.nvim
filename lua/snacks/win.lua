@@ -140,8 +140,12 @@ local win_opts = {
 
 Snacks.util.set_hl({
   Backdrop = { bg = "#000000" },
+  Desc = "DiagnosticInfo",
+  Footer = "FloatFooter",
+  Key = "DiagnosticVirtualTextInfo",
   Normal = "NormalFloat",
   NormalNC = "NormalFloat",
+  Title = "FloatTitle",
   WinBar = "Title",
   WinBarNC = "SnacksWinBar",
 }, { prefix = "Snacks", default = true })
