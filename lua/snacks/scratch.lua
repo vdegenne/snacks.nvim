@@ -69,6 +69,10 @@ local defaults = {
   },
 }
 
+Snacks.util.set_hl({
+  Title = "FloatTitle",
+}, { prefix = "SnacksScratch", default = true })
+
 Snacks.config.style("scratch", {
   width = 100,
   height = 30,
