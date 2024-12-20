@@ -216,6 +216,24 @@ function M.new(opts)
     end
   end
 
+  if opts.show_footer then
+    opts.footer = {}
+    opts.border = opts.border or "rounded"
+    table.sort(self.keys, function(a, b)
+      return a[1] < b[1]
+    end)
+    for _, key in ipairs(self.keys) do
+      local keymap = vim.fn.keytrans(Snacks.util.keycode(key[1]))
+      table.insert(opts.footer, { " " })
+      table.insert(opts.footer, { " " .. keymap .. " ", "SnacksKey" })
+      table.insert(opts.footer, { " " .. (key.desc or keymap) .. " ", "SnacksDesc" })
+    end
+    table.insert(opts.footer, { " " })
+    for _, t in ipairs(opts.footer) do
+      t[2] = t[2] or "SnacksFooter"
+    end
+  end
+
   ---@cast opts snacks.win.Config
   self.opts = opts
   if opts.show ~= false then
