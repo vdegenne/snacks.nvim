@@ -217,9 +217,12 @@ function M.new(opts)
     end
   end
 
+  if opts.title or opts.show_footer then
+    opts.border = opts.border or "rounded"
+  end
+
   if opts.show_footer then
     opts.footer = {}
-    opts.border = opts.border or "rounded"
     table.sort(self.keys, function(a, b)
       return a[1] < b[1]
     end)
